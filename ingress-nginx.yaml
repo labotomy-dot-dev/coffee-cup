@@ -1,0 +1,28 @@
+controller:
+  # this is only needed for Kind to route traffic to node that's going to loadbalance
+  hostPort:
+    enabled: true
+  admissionWebhooks:
+    enabled: false
+  extraArgs:
+    default-ssl-certificate: ingress-nginx/default-tls
+    watch-ingress-without-class: true
+
+  # # this is only needed for Kind to route traffic to node that's going to loadbalance
+  service:
+    type: NodePort
+    # enable when you use metallb loadbalancer
+    # annotations:
+    #   metallb.universe.tf/ip-allocated-from-pool: default
+  nodeSelector:
+    ingress-ready: "true" # this is only needed for Kind to route traffic to node that's going to loadbalance
+
+
+  # this is only needed for Kind to route traffic to node that's going to loadbalance
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+    operator: Equal
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+    operator: Equal
