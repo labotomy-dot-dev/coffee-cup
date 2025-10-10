@@ -1,21 +1,35 @@
 version: 3
 
 tasks:
-  build:
-    desc: build container image
+  build.dev:
+    desc: build container image for dev environment
     cmds:
       - docker build -t ghcr.io/labotomy-dot-dev/coffee-cup:latest ./src
-      
-  push:
-    desc: push container image
+      - docker tag ghcr.io/labotomy-dot-dev/coffee-cup:latest ghcr.io/labotomy-dot-dev/coffee-cup:dev
+  build.prod:
+    desc: build container image for prod environment
+    cmds:
+      - docker build -t ghcr.io/labotomy-dot-dev/coffee-cup:latest ./src
+      - docker tag ghcr.io/labotomy-dot-dev/coffee-cup:latest ghcr.io/labotomy-dot-dev/coffee-cup:prod
+  push.dev:
+    desc: push dev container image
     cmds:
       - echo "$GITHUB_TOKEN" | docker login ghcr.io -u labotomy-dot-dev --password-stdin
       - docker push ghcr.io/labotomy-dot-dev/coffee-cup:latest
+      - docker push ghcr.io/labotomy-dot-dev/coffee-cup:dev
+  push.prod:
+    desc: push prod container image
+    cmds:
+      - echo "$GITHUB_TOKEN" | docker login ghcr.io -u labotomy-dot-dev --password-stdin
+      - docker push ghcr.io/labotomy-dot-dev/coffee-cup:latest
+      - docker push ghcr.io/labotomy-dot-dev/coffee-cup:prod
   deploy.dev:
     desc: deploy to dev
     cmds:
-      - kubectl apply -f deploy/dev/namespace.yaml && kubectl apply -f deploy/dev/deploy.yaml
+      - kubectl get ns dev || kubectl create ns dev
+      - kubectl apply -f deploy/dev/deploy.yaml
   deploy.prod:
     desc: deploy to prod
     cmds:
-      - kubectl apply -f deploy/prod/namespace.yaml && kubectl apply -f deploy/prod/deploy.yaml
+      - kubectl get ns prod || kubectl create ns prod
+      - kubectl apply -f deploy/prod/deploy.yaml
