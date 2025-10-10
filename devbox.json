@@ -4,7 +4,8 @@
     "kind@latest",
     "kubectl@latest",
     "helm@latest",
-    "go-task@latest"
+    "go-task@latest",
+    "k9s@latest"
   ],
   "shell": {
     "init_hook": [

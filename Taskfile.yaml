@@ -97,12 +97,23 @@ tasks:
       - task: kubecontext
   argocd.admin.password:
     desc: print argocd admin password
+    silent: true
     cmds:
       - |
         echo "######################### admin password #############################"
         kubectl -n argocd get secret argocd-initial-admin-secret \
           -o jsonpath="{.data.password}" | base64 -d && echo
         echo "######################################################################"
+  lab.info:
+    desc: print lab info
+    silent: true
+    cmds:
+      - |
+        echo "wait for ingres & argocd to get up"
+        echo "add ip address of your machine to /etc/hosts with argocd.labotomy.dev hostname to be able to access argocd ui directly or use port-forward"
+        echo "argocd default user is admin"
+      - task: argocd.admin.password
+
   lab.up:
     desc: bring the whole lab up
     cmds:
@@ -111,4 +122,4 @@ tasks:
       - task: argocd.up
       - task: deploy.dev.argocd
       - task: deploy.dev.argocd
-      - task: echo "######################################################"
+      - task: lab.info
