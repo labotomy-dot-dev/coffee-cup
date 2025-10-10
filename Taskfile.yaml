@@ -77,17 +77,19 @@ tasks:
         done
   ingress.up:
     desc: install ingress nginx -> https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx
+    silent: true
     cmds:
       - helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-      - helm repo update
+      - helm repo update ingress-nginx
       - kubectl get ns ingress-nginx || kubectl create ns ingress-nginx
       - helm -n ingress-nginx upgrade --install ingress-nginx ingress-nginx/ingress-nginx -f ingress-nginx.yaml --version 4.13.3
   argocd.up:
     desc: Install argo cd in kubernetes cluster
+    silent: true
     # Helm chart is here https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
     cmds:
       - helm repo add argo https://argoproj.github.io/argo-helm
-      - helm repo update
+      - helm repo update argo
       - kubectl get ns argocd || kubectl create ns argocd
       - helm -n argocd upgrade --install argocd argo/argo-cd -f argocd.yaml --version 8.6.0
   cluster.up:
@@ -100,19 +102,22 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "######################### admin password #############################"
+        echo "### admin password ###"
         kubectl -n argocd get secret argocd-initial-admin-secret \
           -o jsonpath="{.data.password}" | base64 -d && echo
-        echo "######################################################################"
   lab.info:
     desc: print lab info
     silent: true
     cmds:
       - |
-        echo "wait for ingres & argocd to get up"
-        echo "add ip address of your machine to /etc/hosts with argocd.labotomy.dev hostname to be able to access argocd ui directly or use port-forward"
-        echo "argocd default user is admin"
-      - task: argocd.admin.password
+        echo "######################### lab info #############################"
+        echo "- lab is up and running"
+        echo "- wait for nginx-ingress & argocd to get up"
+        echo "- add ip address of your machine to /etc/hosts with argocd.labotomy.dev hostname to be able to access argocd ui directly or use port-forwarding"
+        echo "- port-forwarding: kubectl -n argocd port-forward service/argocd-server 8080:80"
+        echo "- argocd default user is admin"
+        echo "- hit 'task argocd.admin.password' to get the password"
+        echo "######################### lab info #############################"
 
   lab.up:
     desc: bring the whole lab up
@@ -121,5 +126,5 @@ tasks:
       - task: ingress.up
       - task: argocd.up
       - task: deploy.dev.argocd
-      - task: deploy.dev.argocd
+      - task: deploy.prod.argocd
       - task: lab.info
