@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coffee-cup
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coffee-cup
+  template:
+    metadata:
+      labels:
+        app: coffee-cup
+    spec:
+      containers:
+        - name: coffee-cup
+          image: ghcr.io/labotomy-dot-dev/coffee-cup:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ENVIRONMENT
+              value: "dev"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coffee-cup
+  namespace: dev
+spec:
+  type: ClusterIP
+  selector:
+    app: coffee-cup
+  ports:
+    - port: 80
+      targetPort: 8080
