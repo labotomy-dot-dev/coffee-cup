@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: 'https://github.com/labotomy-dot-dev/coffee-cup.git'
-    targetRevision: dev
+    targetRevision: main
     path: deploy/dev
   destination:
     server: 'https://kubernetes.default.svc'

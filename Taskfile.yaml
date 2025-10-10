@@ -23,13 +23,35 @@ tasks:
       - echo "$GITHUB_TOKEN" | docker login ghcr.io -u labotomy-dot-dev --password-stdin
       - docker push ghcr.io/labotomy-dot-dev/coffee-cup:latest
       - docker push ghcr.io/labotomy-dot-dev/coffee-cup:prod
-  deploy.dev:
+  deploy.dev.kubectl:
     desc: deploy to dev
     cmds:
       - kubectl get ns dev || kubectl create ns dev
       - kubectl apply -f deploy/dev/deploy.yaml
-  deploy.prod:
+  deploy.prod.kubectl:
     desc: deploy to prod
     cmds:
       - kubectl get ns prod || kubectl create ns prod
       - kubectl apply -f deploy/prod/deploy.yaml
+  deploy.prod.argocd:
+    desc: deploy prod to argocd
+    cmds:
+      - kubectl apply -f argocd/app-prod.yaml
+  deploy.dev.argocd:
+    desc: deploy dev to argocd
+    cmds:
+      - kubectl apply -f argocd/app-dev.yaml
+  dev.up:
+    desc: build & deploy to dev
+    cmds:
+      - task: build.dev
+      - task: push.dev
+      #- task: deploy.dev.kubectl
+      - task: deploy.dev.argocd
+  prod.up:
+    desc: build & deploy to prod
+    cmds:
+      - task: build.dev
+      - task: push.prod
+      #- task: deploy.prod.kubectl
+      - task: deploy.dev.argocd
