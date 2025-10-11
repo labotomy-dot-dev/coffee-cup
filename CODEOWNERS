@@ -1,0 +1,8 @@
+# Platform team owns all platform-level configuration
+#gitops/platform/ @platform-team
+
+# Developers own dev applications
+#gitops/products/apps/dev/ @dev-team
+
+# Team leads own prod applications
+#gitops/products/apps/prod/ @team-lead
