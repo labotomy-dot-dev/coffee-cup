@@ -4,6 +4,7 @@
 - [Lab info](#lab-info)
 - [Lab setup](#lab-setup)
 - [Lab up](#lab-up)
+- [Argo CD User Accounts, Roles, Projects, and Permissions](#argo-cd-user-accounts-roles-projects-and-permissions)
 
 <!-- TOC end -->
 
