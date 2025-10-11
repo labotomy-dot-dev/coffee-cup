@@ -15,6 +15,9 @@ configs:
     accounts.developer: login
     accounts.team_lead: login
 
+    # enable exec into pods
+    exec.enabled: true
+
   rbac:
     policy.default: role:readonly
 
@@ -28,6 +31,12 @@ configs:
       p, role:platform, accounts, *, *, allow
       p, role:platform, settings, *, *, allow
 
+      # Exec / port-forward
+      p, role:platform, exec, create, dev/*, allow
+      p, role:platform, port-forward, create, dev/*, allow
+      p, role:platform, exec, create, prod/*, allow
+      p, role:platform, port-forward, create, prod/*, allow
+
       ########## DEVELOPER ROLE ##########
       # Full access to dev project
       p, role:developer, applications, get, dev/*, allow
@@ -36,6 +45,10 @@ configs:
       p, role:developer, applications, delete, dev/*, allow
       p, role:developer, projects, get, dev, allow
       p, role:developer, clusters, get, *, allow
+
+      # Exec / port-forward
+      p, role:developer, exec, create, dev/*, allow
+      p, role:developer, port-forward, create, dev/*, allow
 
       # Read-only access to prod project
       p, role:developer, applications, get, prod/*, allow
@@ -49,12 +62,22 @@ configs:
       p, role:team_lead, applications, delete, dev/*, allow
       p, role:team_lead, projects, get, dev, allow
 
+      # Exec / port-forward
+      p, role:team_lead, exec, create, dev/*, allow
+      p, role:team_lead, port-forward, create, dev/*, allow
+      p, role:team_lead, exec, create, prod/*, allow
+      p, role:team_lead, port-forward, create, prod/*, allow
+
       # Full access to prod project
       p, role:team_lead, applications, get, prod/*, allow
       p, role:team_lead, applications, sync, prod/*, allow
       p, role:team_lead, applications, create, prod/*, allow
       p, role:team_lead, applications, delete, prod/*, allow
       p, role:team_lead, projects, get, prod, allow
+      p, role:team_lead, clusters, exec, dev/*, allow
+      p, role:team_lead, clusters, exec, prod/*, allow
+      p, role:team_lead, clusters, port-forward, dev/*, allow
+      p, role:team_lead, clusters, port-forward, prod/*, allow
 
       # Access to clusters
       p, role:team_lead, clusters, get, *, allow
@@ -65,6 +88,7 @@ configs:
       g, team_lead, role:team_lead
 
 server:
+
   ingress:
     enabled: true
     ingressClassName: nginx
