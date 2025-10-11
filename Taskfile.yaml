@@ -39,11 +39,12 @@ tasks:
   deploy.argocd.projects:
     desc: deploy projects to argocd
     cmds:
-      - kubectl apply -f argocd/projects
+      - kubectl apply -f gitops/platform/projects
   deploy.argocd.apps:
     desc: deploy apps to argocd
     cmds:
-      - kubectl apply -f argocd/apps
+      - kubectl apply -f gitops/products/apps --recursive
+      - kubectl apply -f gitops/platform/apps --recursive
   dev.up:
     desc: build & deploy to dev
     cmds:
