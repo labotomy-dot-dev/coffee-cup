@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: coffee-cup-dev
+  name: coffee-cup-prod
   namespace: argocd
 spec:
-  project: default
+  project: prod
   source:
     repoURL: 'https://github.com/labotomy-dot-dev/coffee-cup.git'
     targetRevision: main
-    path: deploy/dev
+    path: deploy/prod
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: dev
+    namespace: prod
   syncPolicy:
     automated:
       prune: true

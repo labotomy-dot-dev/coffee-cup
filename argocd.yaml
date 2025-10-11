@@ -3,8 +3,66 @@ global:
   domain: argocd.labotomy.dev
 
 configs:
+  secret:
+    argocdServerAdminPassword: "$2a$10$ZAOa9qsLl8.erTepdjLrR.h6qUSFa/kXS7X0WA79eoAfg3me/u/WC"
+
   params:
     server.insecure: true
+  cm:
+    # Enable local users
+    admin.enabled: "true"
+    accounts.platform: login
+    accounts.developer: login
+    accounts.team_lead: login
+
+  rbac:
+    policy.default: role:readonly
+
+    policy.csv: |
+      ########## PLATFORM ROLE ##########
+      # Platform can manage Argo CD itself and view everything
+      p, role:platform, clusters, *, *, allow
+      p, role:platform, repositories, *, *, allow
+      p, role:platform, projects, get, *, allow
+      p, role:platform, applications, get, *, allow
+      p, role:platform, accounts, *, *, allow
+      p, role:platform, settings, *, *, allow
+
+      ########## DEVELOPER ROLE ##########
+      # Full access to dev project
+      p, role:developer, applications, get, dev/*, allow
+      p, role:developer, applications, sync, dev/*, allow
+      p, role:developer, applications, create, dev/*, allow
+      p, role:developer, applications, delete, dev/*, allow
+      p, role:developer, projects, get, dev, allow
+      p, role:developer, clusters, get, *, allow
+
+      # Read-only access to prod project
+      p, role:developer, applications, get, prod/*, allow
+      p, role:developer, projects, get, prod, allow
+
+      ########## TEAM LEAD ROLE ##########
+      # Full access to dev project
+      p, role:team_lead, applications, get, dev/*, allow
+      p, role:team_lead, applications, sync, dev/*, allow
+      p, role:team_lead, applications, create, dev/*, allow
+      p, role:team_lead, applications, delete, dev/*, allow
+      p, role:team_lead, projects, get, dev, allow
+
+      # Full access to prod project
+      p, role:team_lead, applications, get, prod/*, allow
+      p, role:team_lead, applications, sync, prod/*, allow
+      p, role:team_lead, applications, create, prod/*, allow
+      p, role:team_lead, applications, delete, prod/*, allow
+      p, role:team_lead, projects, get, prod, allow
+
+      # Access to clusters
+      p, role:team_lead, clusters, get, *, allow
+
+      ########## USER TO ROLE BINDINGS ##########
+      g, platform, role:platform
+      g, developer, role:developer
+      g, team_lead, role:team_lead
 
 server:
   ingress:

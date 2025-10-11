@@ -5,7 +5,8 @@
     "kubectl@latest",
     "go-task@latest",
     "k9s@latest",
-    "kubernetes-helm@latest"
+    "kubernetes-helm@latest",
+    "argocd@latest"
   ],
   "shell": {
     "init_hook": [
