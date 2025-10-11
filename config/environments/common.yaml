@@ -1,0 +1,38 @@
+# here you put common values for all environments
+# you can override them in specific environment files (stg.yaml, prod.yaml)
+# you can also put environment specific values here, but it's not recommended
+# because it can lead to confusion and mistakes
+# e.g. if you put a value in common.yaml and then override it in prod.yaml
+# but forget to override it in stg.yaml, then stg will use the value from common.yaml
+# which is not what you want
+# so it's better to keep common.yaml as a place for truly common values only
+# and put environment specific values in their respective files
+# e.g. replicaCount: 2 in common.yaml and replicaCount: 3 in prod.yaml
+# then dev and stg will use replicaCount: 2 and prod will use replicaCount: 3
+# this way you can easily see what values are common and what values are specific to each environment
+# and you can avoid mistakes and confusion
+# also, if you have a lot of common values, you can split them into multiple files
+# e.g. common-database.yaml, common-logging.yaml, etc.
+# and then include them in common.yaml
+# e.g. values:
+# - config/environments/common-database.yaml
+# - config/environments/common-logging.yaml
+# - config/environments/common.yaml
+# this way you can keep your common values organized and easy to manage
+# and you can easily see what values are related to what functionality
+# also, if you have a lot of environment specific values, you can split them into multiple files
+# e.g. dev-database.yaml, dev-logging.yaml, etc.
+# and then include them in dev.yaml
+# e.g. values:
+# - config/environments/dev-database.yaml
+# - config/environments/dev-logging.yaml
+# - config/environments/dev.yaml
+# this way you can keep your environment specific values organized and easy to manage
+# and you can easily see what values are related to what functionality
+# also, if you have a lot of environments, you can create a directory for each environment
+# e.g. config/environments/dev/, config/environments/stg/, config/environments/prod/
+# and then put all the files related to that environment in that directory
+# e.g. config/environments/dev/database.yaml, config/environments/dev/logging.yaml, etc.
+# this way you can keep your environments organized and easy to manage
+# and you can easily see what files are related to what environment
+#

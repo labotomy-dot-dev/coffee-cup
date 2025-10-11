@@ -1,0 +1,27 @@
+---
+# Source: mailhog/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailhog
+  labels:
+    helm.sh/chart: mailhog-5.2.3
+    app.kubernetes.io/name: mailhog
+    app.kubernetes.io/instance: mailhog
+    app.kubernetes.io/version: "v1.0.1"
+    app.kubernetes.io/managed-by: Helm
+  namespace: "mailhog"
+spec:
+  type: "ClusterIP"
+  ports:
+    - name: http
+      port: 8025
+      protocol: TCP
+      targetPort: http
+    - name: tcp-smtp
+      port: 1025
+      protocol: TCP
+      targetPort: tcp-smtp
+  selector:
+    app.kubernetes.io/name: mailhog
+    app.kubernetes.io/instance: mailhog

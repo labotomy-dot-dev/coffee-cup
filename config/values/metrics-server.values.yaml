@@ -1,0 +1,3 @@
+args:
+  # this one fixes issues with metrics-server not being able to communicate with kubelets on some setups
+  - --kubelet-insecure-tls

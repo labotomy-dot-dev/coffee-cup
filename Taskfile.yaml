@@ -1,7 +1,13 @@
 version: 3
 
+vars:
+  REPO_PATH:
+    sh: git rev-parse --show-toplevel
+
 env:
   WORKLOAD_CLUSTER_NAME: "coffee-cup"
+  REPO_PATH: "{{.REPO_PATH}}"
+  MANIFESTS_BASE_PATH: "{{.REPO_PATH}}/gitops/platform/manifests/generated"
 
 tasks:
   build.dev:
@@ -118,7 +124,24 @@ tasks:
           }
         }'
         kubectl rollout restart deployment argocd-server -n argocd
-
+  render.cmd.dev:
+    desc: renders k8s manifests for dev
+    cmds:
+      - |
+        MANIFESTS_PATH="$MANIFESTS_BASE_PATH/dev"
+        echo "$MANIFESTS_PATH"
+        rm -rf $MANIFESTS_PATH
+        # use helmfile --debug to print more info
+        helmfile -f ./helmfile.yaml template -e dev --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
+  render.cmd.prod:
+    desc: renders k8s manifests for prod
+    cmds:
+      - |
+        MANIFESTS_PATH="$MANIFESTS_BASE_PATH/prod"
+        echo "$MANIFESTS_PATH"
+        rm -rf $MANIFESTS_PATH
+        # use helmfile --debug to print more info
+        helmfile -f ./helmfile.yaml template -e prod --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
   lab.info:
     desc: print lab info
     silent: true

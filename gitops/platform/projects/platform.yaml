@@ -11,7 +11,7 @@ spec:
   sourceRepos:
   - '*'
   destinations:
-  - namespace: "platform"
+  - namespace: "*"
     server: '*'
   clusterResourceWhitelist:
   - group: '*'
