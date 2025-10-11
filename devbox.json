@@ -6,7 +6,8 @@
     "go-task@latest",
     "k9s@latest",
     "kubernetes-helm@latest",
-    "argocd@latest"
+    "argocd@latest",
+    "helmfile@0.171.0"
   ],
   "shell": {
     "init_hook": [
