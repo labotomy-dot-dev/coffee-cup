@@ -104,10 +104,17 @@ jobs:
       - name: Retag and push prod image
         if: steps.check_dev.outputs.changed == 'true'
         run: |
-          docker pull $IMAGE:${DEV_TAG}
-          docker tag $IMAGE:${DEV_TAG} $IMAGE:${PROD_TAG}
-          echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker push $IMAGE:${PROD_TAG}
+          DEV_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEV_TAG }}
+          PROD_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.PROD_TAG }}
+
+          echo "Dev image: $DEV_IMAGE"
+          echo "Prod image: $PROD_IMAGE"
+
+          docker pull $DEV_IMAGE
+          docker tag $DEV_IMAGE $PROD_IMAGE
+
+          echo "${{ secrets.GHCR_PAT }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+          docker push $PROD_IMAGE
 
       - name: Update prod manifests
         if: steps.check_dev.outputs.changed == 'true'
