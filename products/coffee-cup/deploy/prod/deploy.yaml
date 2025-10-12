@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: coffee-cup
-          image: ghcr.io/labotomy-dot-dev/coffee-cup:prod
+          image: ghcr.io/labotomy-dot-dev/coffee-cup:prod-24
           ports:
             - containerPort: 8080
           env:
@@ -34,3 +34,7 @@ spec:
   ports:
     - port: 80
       targetPort: 8080
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/labotomy-dot-dev/coffee-cup:prod-24
