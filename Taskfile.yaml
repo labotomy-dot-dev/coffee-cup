@@ -12,13 +12,15 @@ env:
 tasks:
   build.dev:
     desc: build container image for dev environment
+    dir: ./products/coffee-cup/src
     cmds:
-      - docker build -t ghcr.io/labotomy-dot-dev/coffee-cup:latest ./src
+      - docker build -t ghcr.io/labotomy-dot-dev/coffee-cup:latest .
       - docker tag ghcr.io/labotomy-dot-dev/coffee-cup:latest ghcr.io/labotomy-dot-dev/coffee-cup:dev
   build.prod:
     desc: build container image for prod environment
+    dir: ./products/coffee-cup/src
     cmds:
-      - docker build -t ghcr.io/labotomy-dot-dev/coffee-cup:latest ./src
+      - docker build -t ghcr.io/labotomy-dot-dev/coffee-cup:latest .
       - docker tag ghcr.io/labotomy-dot-dev/coffee-cup:latest ghcr.io/labotomy-dot-dev/coffee-cup:prod
   push.dev:
     desc: push dev container image

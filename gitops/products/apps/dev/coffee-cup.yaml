@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: 'https://github.com/labotomy-dot-dev/coffee-cup.git'
     targetRevision: main
-    path: deploy/dev
+    path: products/coffee-cup/deploy/dev
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: dev
