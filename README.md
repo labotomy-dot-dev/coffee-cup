@@ -95,3 +95,29 @@ Use Taskfile other commands to manage ArgoCD.
   - Read-only access to clusters globally.
 
 ---
+
+## Notifications
+
+- [Git Webhook Configuration](https://argo-cd.readthedocs.io/en/stable/operator-manual/webhook/)
+
+```mermaid
+flowchart TD
+    A[Application Sync Triggered] --> B{Argo CD Notification Controller}
+    B --> C[Evaluate Triggers]
+    C -->|on-sync-succeeded| D[Template: github-app-sync-succeeded]
+    C -->|on-sync-failed| E[Template: github-app-sync-failed]
+    D --> F[Service: webhook.github]
+    E --> F
+    F --> G[GitHub Repository Dispatch Event]
+    G --> H[GitHub Workflow Runs]
+```
+
+**Explanation of the flow:**
+
+1. **Application Sync Triggered** – A deployment is applied or reconciled in Argo CD.
+2. **Notification Controller** – Monitors the application status.
+3. **Evaluate Triggers** – Checks conditions like `on-sync-succeeded` or `on-sync-failed`.
+4. **Templates** – Predefined templates determine the payload and which service to send notifications to.
+5. **Webhook Service** – Sends the notification to GitHub using the configured `service.webhook.github`.
+6. **GitHub Repository Dispatch Event** – Triggers a GitHub Actions workflow in your repository.
+7. **GitHub Workflow Runs** – Executes subsequent steps like tests, promotion, or deployments.
