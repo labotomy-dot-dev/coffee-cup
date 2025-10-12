@@ -1,11 +1,9 @@
-name: Build, Test, and Deploy
+name: Build, Test, and Deploy Coffee-Cup
 
 on:
   push:
-    branches: [main]
-    paths:
-      - "products/coffee-cup/src/**"
-      - "products/coffee-cup/deploy/**"
+    branches:
+      - main
   workflow_dispatch:
 
 env:
