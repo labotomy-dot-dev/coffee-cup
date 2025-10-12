@@ -119,15 +119,16 @@ jobs:
       - name: Update prod manifests
         if: steps.check_dev.outputs.changed == 'true'
         run: |
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-          yq e -i ".spec.template.spec.containers[0].image = \"${IMAGE}:${PROD_TAG}\"" $PROD_MANIFEST_PATH/deploy.yaml
+          PROD_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.PROD_TAG }}
+
+          echo "Updating prod manifests with image $PROD_IMAGE..."
+          yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" $PROD_MANIFEST_PATH/deploy.yaml
+
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add $PROD_MANIFEST_PATH/deploy.yaml
           git commit -m "Promote Coffee-Cup to prod ($PROD_TAG)" || echo "No changes to commit"
           git push || echo "Push skipped (no changes)"
-
       - name: Run production smoke tests
         if: steps.check_dev.outputs.changed == 'true'
         run: |
