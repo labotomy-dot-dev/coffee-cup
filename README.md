@@ -11,6 +11,7 @@
   - [Folder Roles](#folder-roles)
 - [Argo CD User Accounts, Roles, Projects, and Permissions](#argo-cd-user-accounts-roles-projects-and-permissions)
 - [Platform and Developer Autonomy](#platform-and-developer-autonomy)
+- [Application onboarding and App of Apps pattern](#application-onboarding-and-app-of-apps-pattern)
 - [Rollback and Notifications Integration](#rollback-and-notifications-integration)
 - [How notifications work?](#how-notifications-work)
   - [Rollback Workflow](#rollback-workflow)
@@ -198,6 +199,125 @@ team to operate independently:
 
 This combination of **projects**, **namespaces**, and **self-service notifications** ensures a clear
 separation of responsibilities while maintaining a fully automated GitOps workflow.
+
+## Application onboarding and App of Apps pattern
+
+**WORK IN PROGRESS**
+
+- **Developers’ apps location**:
+  All developer applications are stored in the repository under:
+
+```bash
+gitops/products/apps
+├── dev
+│   └── <app-name>.yaml
+└── prod
+    └── <app-name>.yaml
+```
+
+- **Adding new applications**:
+  Developers are **code owners** of this folder, so they can create or update application manifests
+  directly in `dev` and `prod`. Each file represents an Argo CD **child application** with its
+  environment-specific settings.
+
+- **App of Apps pattern**:
+
+  - The **top-level App of Apps** is a single Argo CD application that points to a folder containing
+    other application manifests.
+  - One App of Apps exists for `dev`, watching `gitops/products/apps/dev`.
+  - Another exists for `prod`, watching `gitops/products/apps/prod`.
+  - When a new child app is added or updated, the App of Apps automatically deploys or updates it in
+    the cluster.
+
+- **Benefits**:
+
+  - Developers can onboard apps without direct access to the cluster.
+  - Admins control the overall structure, namespace, and sync policies.
+  - Separation of concerns: developers focus on code; admins manage infrastructure and projects.
+
+---
+
+**Example child application (coffee-cup app for dev)**
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: coffee-cup-dev
+  namespace: argocd
+spec:
+  project: dev
+  source:
+    repoURL: 'https://github.com/labotomy-dot-dev/gitops.git'
+    targetRevision: main
+    path: products/coffee-cup/deploy/dev
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+**Example App of Apps for dev**
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: products-dev
+  namespace: argocd
+spec:
+  project: dev
+  source:
+    repoURL: 'https://github.com/labotomy-dot-dev/gitops.git'
+    targetRevision: main
+    path: products/apps/dev
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+**Example App of Apps for prod**
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: products-prod
+  namespace: argocd
+spec:
+  project: prod
+  source:
+    repoURL: 'https://github.com/labotomy-dot-dev/gitops.git'
+    targetRevision: main
+    path: products/apps/prod
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+---
+
+**How it works (workflow)**
+
+1. Developer creates or updates their app YAML in `gitops/products/apps/dev`.
+2. The **dev App of Apps** detects the new/updated app and deploys it to the dev namespace.
+3. Argo CD notifications or CI/CD workflows run tests against the dev deployment.
+4. Once tests succeed, the **prod App of Apps** picks up the app YAML in `gitops/products/apps/prod`
+   and deploys it automatically to prod.
+
+This ensures **self-service onboarding** for developers while keeping environments safe and controlled
+by admins.
 
 ## Rollback and Notifications Integration
 
