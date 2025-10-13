@@ -10,6 +10,7 @@
   - [Example Layout](#example-layout)
   - [Folder Roles](#folder-roles)
 - [Argo CD User Accounts, Roles, Projects, and Permissions](#argo-cd-user-accounts-roles-projects-and-permissions)
+- [Platform and Developer Autonomy](#platform-and-developer-autonomy)
 - [Rollback and Notifications Integration](#rollback-and-notifications-integration)
 - [How notifications work?](#how-notifications-work)
   - [Rollback Workflow](#rollback-workflow)
@@ -171,6 +172,32 @@ products/
   - Read-only access to clusters globally.
 
 ---
+
+## Platform and Developer Autonomy
+
+In Argo CD, **projects** define boundaries for applications, including which repositories, clusters,
+and namespaces they can operate in. In our setup, we have three main projects:
+
+- **platform** – manages core services and manifests in the `platform` folder; owned by the Platform Team.
+- **dev** – manages applications in `products/dev` folder; owned by Developers.
+- **prod** – manages applications in `products/prod` folder; owned by Team Leads.
+
+Using projects together with namespace-scoped applications and self-service notifications allows each
+team to operate independently:
+
+- **Platform Team** can manage shared platform manifests and core services.
+- **Developers** can update their dev environment applications and trigger automated tests.
+- **Team Leads** can promote and manage production deployments without affecting dev workflows.
+
+**How it works:**
+
+- Applications are assigned to the proper project (`platform`, `dev`, or `prod`).
+- `--application-namespaces` ensures Argo CD watches all relevant namespaces.
+- `--self-service-notification-enabled` allows teams to act on notifications, such as triggering
+  workflows or monitoring deployments, without requiring admin intervention.
+
+This combination of **projects**, **namespaces**, and **self-service notifications** ensures a clear
+separation of responsibilities while maintaining a fully automated GitOps workflow.
 
 ## Rollback and Notifications Integration
 
