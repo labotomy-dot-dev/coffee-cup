@@ -1,55 +1,131 @@
 # Coffee cup
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
-- [Lab info](#lab-info)
-- [Lab setup](#lab-setup)
-- [Lab up](#lab-up)
+- [GitOps and Monorepo Structure](#gitops-and-monorepo-structure)
+  - [Repository Layout Overview](#repository-layout-overview)
+  - [GitOps Structure Explanation](#gitops-structure-explanation)
+    - [Ownership Summary](#ownership-summary)
+    - [GitOps Flow Diagram](#gitops-flow-diagram)
+- [Monorepo Application Structure](#monorepo-application-structure)
+  - [Example Layout](#example-layout)
+  - [Folder Roles](#folder-roles)
 - [Argo CD User Accounts, Roles, Projects, and Permissions](#argo-cd-user-accounts-roles-projects-and-permissions)
+- [Rollback and Notifications Integration](#rollback-and-notifications-integration)
+- [How notifications work?](#how-notifications-work)
+  - [Rollback Workflow](#rollback-workflow)
+  - [Notifications Overview](#notifications-overview)
+    - [Notification Flow](#notification-flow)
+    - [Example Triggers and Templates](#example-triggers-and-templates)
+    - [Example Notification setup](#example-notification-setup)
+    - [Example GitHub Workflow Triggered](#example-github-workflow-triggered)
+- [Lab setup](#lab-setup)
 
 <!-- TOC end -->
 
-## Lab info
+## GitOps and Monorepo Structure
 
-Just my playground for argocd.
+This repository implements a **GitOps workflow using Argo CD**, combining both **platform configuration** and
+**application code** within a single monorepo. It enables fully automated deployment, promotion, and rollback
+of applications across development and production environments.
 
-**Requirements:**
-
-- docker
-- kind
-- kubectl
-- helm
-- Taskfile
-
-## Lab setup
-
-Install devbox to install all lab tools expect for docker or install all of them any other way. Here's
-the setup for devbox:
+### Repository Layout Overview
 
 ```bash
-curl -fsSL https://get.jetify.com/devbox | bash
+.
+├── gitops/
+│   ├── platform/
+│   │   ├── apps/
+│   │   ├── projects/
+│   │   └── manifests/
+│   └── products/
+│       ├── dev/
+│       └── prod/
+└── products/
+    └── coffee-cup/
+        ├── src/
+        └── deploy/
 ```
 
-And install packages:
+### GitOps Structure Explanation
+
+- **`gitops/platform/`**
+
+  - Contains Argo CD **Applications**, **Projects**, and **shared platform services** such as ingress,
+    metrics, etc.
+  - Owned by the **platform team**.
+
+- **`gitops/products/`**
+
+  - Contains Argo CD **Application manifests for all product teams**.
+  - Split by environment:
+
+    - `dev/` — managed by developers.
+    - `prod/` — owned by team leads.
+  - These manifests point to the deployment paths inside the `products/<app>/deploy/` folders.
+
+#### Ownership Summary
+
+| Folder                 | Purpose                                       | Ownership     |
+| ---------------------- | --------------------------------------------- | ------------- |
+| `gitops/platform`      | Core Argo CD apps, projects, and shared infra | Platform Team |
+| `gitops/products/dev`  | Argo CD apps for development                  | Developers    |
+| `gitops/products/prod` | Argo CD apps for production                   | Team Leads    |
+
+#### GitOps Flow Diagram
+
+```mermaid
+graph TD
+    A[Developer pushes code to monorepo] --> B[CI updates deploy/dev manifests]
+    B --> C[Argo CD syncs to dev environment]
+    C --> D[Argo CD notifies GitHub via dispatch<br>dev environment is ready]
+    D --> E[GitHub workflow runs tests against dev]
+    E -->|Success| F[CI updates deploy/prod manifests]
+    F --> G[Argo CD syncs production environment]
+    E -->|Failure| H[CI triggers rollback using last good dev revision]
+
+    subgraph Ownership
+    H1[Platform Team]:::platform
+    H2[Developers]:::dev
+    H3[Team Leads]:::prod
+    end
+```
+
+---
+
+## Monorepo Application Structure
+
+All application code and deployment manifests live in this same repository.
+This ensures that **code, infrastructure definitions, and promotion pipelines** are versioned together.
+
+### Example Layout
 
 ```bash
-devbox install
+products/
+└── coffee-cup/
+    ├── src/
+    │   ├── app.py
+    │   ├── Dockerfile
+    │   └── requirements.txt
+    │
+    └── deploy/
+        ├── dev/
+        │   ├── deploy.yaml
+        │   └── service.yaml
+        │
+        └── prod/
+            ├── deploy.yaml
+            └── service.yaml
 ```
 
-Finally run shell:
+### Folder Roles
 
-```bash
-devbox shell
-```
+| Folder             | Description                                              | Ownership  |
+| ------------------ | -------------------------------------------------------- | ---------- |
+| **`src/`**         | Application code and build definition (Dockerfile).      | Shared     |
+| **`deploy/dev/`**  | Dev manifests, automatically applied via Argo CD.        | Developers |
+| **`deploy/prod/`** | Prod manifests, auto-promoted after successful dev sync. | Team Leads |
 
-## Lab up
-
-Run full lab:
-
-```bash
-task lab.up
-```
-
-Use Taskfile other commands to manage ArgoCD.
+---
 
 ## Argo CD User Accounts, Roles, Projects, and Permissions
 
@@ -95,3 +171,214 @@ Use Taskfile other commands to manage ArgoCD.
   - Read-only access to clusters globally.
 
 ---
+
+## Rollback and Notifications Integration
+
+The deployment pipeline integrates **Argo CD Notifications** and **automated rollback** to ensure stability
+and traceability throughout the GitOps process.
+
+## How notifications work?
+
+```mermaid
+flowchart TD
+    A[Application Sync Triggered] --> B{Argo CD Notification Controller}
+    B --> C[Evaluate Triggers]
+    C -->|on-sync-succeeded| D[Template: github-app-sync-succeeded]
+    C -->|on-sync-failed| E[Template: github-app-sync-failed]
+    D --> F[Service: webhook.github]
+    E --> F
+    F --> G[GitHub Repository Dispatch Event]
+    G --> H[GitHub Workflow Runs]
+```
+
+**Explanation of the flow:**
+
+1. **Application Sync Triggered** – A deployment is applied or reconciled in Argo CD.
+2. **Notification Controller** – Monitors the application status.
+3. **Evaluate Triggers** – Checks conditions like `on-sync-succeeded` or `on-sync-failed`.
+4. **Templates** – Predefined templates determine the payload and which service to send notifications to.
+5. **Webhook Service** – Sends the notification to GitHub using the configured `service.webhook.github`.
+6. **GitHub Repository Dispatch Event** – Triggers a GitHub Actions workflow in your repository.
+7. **GitHub Workflow Runs** – Executes subsequent steps like tests, promotion, or deployments.
+
+- [Git Webhook Configuration](https://argo-cd.readthedocs.io/en/stable/operator-manual/webhook/)
+
+### Rollback Workflow
+
+1. Each Argo CD application uses automated sync with `selfHeal` and `prune` enabled.
+2. If deployment to the `dev` or `prod` environment fails (due to manifest error, image issue, etc.):
+
+   - Argo CD detects the failed sync.
+   - A rollback is triggered automatically to the **last healthy revision**.
+3. The failed event is reported through the **notifications subsystem** (GitHub webhook or Slack).
+
+### Notifications Overview
+
+Argo CD Notifications is configured to send **repository_dispatch** events to GitHub on key triggers.
+
+#### Notification Flow
+
+```mermaid
+sequenceDiagram
+    participant ArgoCD
+    participant NotificationController
+    participant GitHub
+    participant CI
+
+    ArgoCD->>NotificationController: Sync Succeeded / Failed
+    NotificationController->>GitHub: POST /dispatches (event_type: argocd-sync-succeeded/failed)
+    GitHub->>CI: Trigger GitHub Actions workflow
+    CI->>ArgoCD: (Optional) Rollback or reapply manifests
+```
+
+#### Example Triggers and Templates
+
+- **Trigger:** `on-sync-succeeded`
+
+  - Fires when app sync succeeds.
+  - Sends `argocd-sync-succeeded` GitHub dispatch event.
+
+- **Trigger:** `on-sync-failed`
+
+  - Fires when sync fails.
+  - Sends `argocd-sync-failed` dispatch event and logs rollback.
+
+#### Example Notification setup
+
+```yaml
+## Notifications controller
+notifications:
+  enabled: true
+  # you'll have to create secret manually
+  secret:
+    create: false
+  argocdUrl: "https://argocd.labotomy.dev"
+
+  # # 1. Define the webhook service
+  notifiers:
+    service.webhook.github: |
+      url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
+      method: POST
+      headers:
+        - name: Authorization
+          value: Bearer $github_token
+        - name: Accept
+          value: application/vnd.github+json
+  # 2. Define triggers
+  triggers:
+    trigger.on-sync-succeeded: |
+      - description: Application syncing has succeeded
+        send:
+          - github-app-sync-succeeded
+        when: app.status.operationState.phase in ['Succeeded']
+
+    trigger.on-sync-failed: |
+      - description: Application syncing has failed
+        send:
+          - github-app-sync-failed
+        when: app.status.operationState.phase in ['Error', 'Failed']
+
+  # 3. Define templates (reference the service by name)
+  templates:
+    template.github-app-sync-failed: |
+      webhook:
+        github:
+          method: POST
+          url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
+          headers:
+            Authorization: Bearer $github_token
+            Accept: application/vnd.github+json
+          body: |
+            {
+              "event_type": "argocd-sync-failed",
+              "client_payload": {
+                "app": "{{.app.metadata.name}}",
+                "project": "{{.app.spec.project}}",
+                "revision": "{{.app.status.sync.revision}}"
+              }
+            }
+    template.github-app-sync-succeeded: |
+      webhook:
+        github:
+          method: POST
+          url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
+          headers:
+            Authorization: Bearer $github_token
+            Accept: application/vnd.github+json
+          body: |
+            {
+              "event_type": "argocd-sync-succeeded",
+              "client_payload": {
+                "app": "{{.app.metadata.name}}",
+                "project": "{{.app.spec.project}}",
+                "revision": "{{.app.status.sync.revision}}"
+              }
+            }
+  # 4. Define subscriptions
+  subscriptions:
+    - recipients:
+      - github
+      triggers:
+        - on-sync-succeeded
+        - on-sync-failed
+```
+
+#### Example GitHub Workflow Triggered
+
+When Argo CD sends a `repository_dispatch`:
+
+```yaml
+on:
+  repository_dispatch:
+    types: [argocd-sync-failed, argocd-sync-succeeded]
+
+jobs:
+  handle_event:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Rollback if sync failed
+        if: ${{ github.event.action == 'argocd-sync-failed' }}
+        run: |
+          echo "Rollback triggered for ${{ github.event.client_payload.app }}"
+          ./scripts/rollback_cli_.sh
+```
+
+## Lab setup
+
+**Requirements:**
+
+- docker
+- kind
+- kubectl
+- helm
+- Taskfile
+
+Install devbox to install all lab tools expect for docker or install all of them any other way. Here's
+the setup for devbox:
+
+```bash
+curl -fsSL https://get.jetify.com/devbox | bash
+```
+
+And install packages:
+
+```bash
+devbox install
+```
+
+Finally run shell:
+
+```bash
+devbox shell
+```
+
+Run full lab:
+
+```bash
+task lab.up
+```
+
+Use Taskfile other commands to manage ArgoCD and other acpects of the lab.

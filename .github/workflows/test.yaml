@@ -1,0 +1,14 @@
+on:
+    repository_dispatch:
+        types: [argocd-sync-succeeded]
+
+jobs:
+    post-sync-tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Print payload
+              run: |
+                  echo "App: ${{ github.event.client_payload.app }}"
+                  echo "Project: ${{ github.event.client_payload.project }}"
+                  echo "Revision: ${{ github.event.client_payload.revision }}"
+                  echo "✅ Argo CD finished syncing successfully!"

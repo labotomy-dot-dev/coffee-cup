@@ -144,6 +144,16 @@ tasks:
         rm -rf $MANIFESTS_PATH
         # use helmfile --debug to print more info
         helmfile -f ./helmfile.yaml template -e prod --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
+  argocd.notification.secret:
+    desc: configure notification controller secret
+    cmds:
+      - |
+        # fail if GITHUB_TOKEN is not set
+        : "${GITHUB_TOKEN:?GITHUB_TOKEN environment variable is required}"
+
+        kubectl create secret generic argocd-notifications-secret \
+          -n argocd \
+          --from-literal=github_token=$GITHUB_TOKEN
   lab.info:
     desc: print lab info
     silent: true

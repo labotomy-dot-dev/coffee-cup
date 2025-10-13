@@ -1,0 +1,22 @@
+on:
+  repository_dispatch:
+    types: [argocd-sync-failed, argocd-sync-succeeded]
+
+jobs:
+  rollback-on-failure:
+    if: github.event.action == 'argocd-sync-failed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run rollback script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+          GITHUB_EVENT_CLIENT_PAYLOAD_APP: ${{ github.event.client_payload.app }}
+          GITHUB_EVENT_CLIENT_PAYLOAD_REVISION: ${{ github.event.client_payload.revision }}
+        run: |
+          echo "Rollback script would run here."
+          #chmod +x scripts/rollback.sh
+          #./scripts/rollback_api.sh

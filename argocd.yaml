@@ -104,3 +104,85 @@ server:
 
 redis-ha:
   enabled: false
+
+## Notifications controller
+notifications:
+  enabled: true
+  # you'll have to create secret manually
+  secret:
+    create: false
+  argocdUrl: "https://argocd.labotomy.dev"
+
+  # # 1. Define the webhook service
+  notifiers:
+    # service.webhook.github: |
+    #   url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
+    #   method: POST
+    #   headers:
+    #     Authorization: Bearer $GITHUB_TOKEN
+    #     Accept: application/vnd.github+json
+    service.webhook.github: |
+      url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
+      method: POST
+      headers:
+        - name: Authorization
+          value: Bearer $github_token
+        - name: Accept
+          value: application/vnd.github+json
+  # 2. Define triggers
+  triggers:
+    trigger.on-sync-succeeded: |
+      - description: Application syncing has succeeded
+        send:
+          - github-app-sync-succeeded
+        when: app.status.operationState.phase in ['Succeeded']
+
+    trigger.on-sync-failed: |
+      - description: Application syncing has failed
+        send:
+          - github-app-sync-failed
+        when: app.status.operationState.phase in ['Error', 'Failed']
+
+  # 3. Define templates (reference the service by name)
+  templates:
+    template.github-app-sync-failed: |
+      webhook:
+        github:
+          method: POST
+          url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
+          headers:
+            Authorization: Bearer $github_token
+            Accept: application/vnd.github+json
+          body: |
+            {
+              "event_type": "argocd-sync-failed",
+              "client_payload": {
+                "app": "{{.app.metadata.name}}",
+                "project": "{{.app.spec.project}}",
+                "revision": "{{.app.status.sync.revision}}"
+              }
+            }
+    template.github-app-sync-succeeded: |
+      webhook:
+        github:
+          method: POST
+          url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
+          headers:
+            Authorization: Bearer $github_token
+            Accept: application/vnd.github+json
+          body: |
+            {
+              "event_type": "argocd-sync-succeeded",
+              "client_payload": {
+                "app": "{{.app.metadata.name}}",
+                "project": "{{.app.spec.project}}",
+                "revision": "{{.app.status.sync.revision}}"
+              }
+            }
+  # 4. Define subscriptions
+  subscriptions:
+    - recipients:
+      - github
+      triggers:
+        - on-sync-succeeded
+        - on-sync-failed
