@@ -174,8 +174,6 @@ tasks:
       - task: cluster.up
       - task: ingress.up
       - task: argocd.up
-      - task: deploy.dev.argocd
-      - task: deploy.prod.argocd
       - task: argocd.accounts.passwords
       - task: deploy.argocd.projects
       - task: deploy.argocd.apps
