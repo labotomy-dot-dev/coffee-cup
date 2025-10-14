@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tee-cup
+  namespace: prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tee-cup
+  template:
+    metadata:
+      labels:
+        app: tee-cup
+    spec:
+      containers:
+        - name: tee-cup
+          image: ghcr.io/labotomy-dot-dev/tee-cup:prod-29
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ENVIRONMENT
+              value: "prod"

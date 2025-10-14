@@ -1,0 +1,100 @@
+name: Build and Deploy Changed App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "products/**"
+      - ".github/workflows/build-monorepo.yaml"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  detect-and-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect changed app folder
+        id: detect
+        run: |
+          # Ensure we have at least 2 commits for diff to work
+          git fetch --depth=2 origin ${{ github.ref }}
+
+          # If this is the first commit, handle it gracefully
+          if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
+            echo "First commit detected. Building all apps."
+            CHANGED_APPS=$(ls products)
+          else
+            # Compare current and previous commit
+            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+            CHANGED_APPS=$(echo "$CHANGED_FILES" | grep '^products/' | cut -d'/' -f2 | sort -u)
+          fi
+
+          if [ -z "$CHANGED_APPS" ]; then
+            echo "No changes detected in any app. Exiting."
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Detected changed apps: $CHANGED_APPS"
+          echo "apps=$CHANGED_APPS" >> $GITHUB_OUTPUT
+          echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Stop if no changes detected
+        if: steps.detect.outputs.changed == 'false'
+        run: echo "No app changes detected. Skipping build."
+
+      - name: Install yq
+        if: steps.detect.outputs.changed == 'true'
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Set up Docker Buildx
+        if: steps.detect.outputs.changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: steps.detect.outputs.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Build and push Docker images for changed apps
+        if: steps.detect.outputs.changed == 'true'
+        run: |
+          for APP in ${{ steps.detect.outputs.apps }}; do
+            echo "Building app: $APP"
+            SRC_PATH="products/$APP/src"
+            DEV_MANIFEST_PATH="products/$APP/deploy/dev"
+            TAG="dev-${{ github.run_number }}"
+            
+            docker buildx build "$SRC_PATH" \
+              --push \
+              --tag "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${APP}:$TAG"
+            
+            echo "Updating manifests for $APP..."
+            yq -i ".spec.template.spec.containers[0].image = \
+              \"$REGISTRY/$IMAGE_NAME-$APP:$TAG\"" \
+              "$DEV_MANIFEST_PATH/deploy.yaml"
+            
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            git add "$DEV_MANIFEST_PATH/deploy.yaml"
+          done
+
+          git commit -m "Update image tags for changed apps [skip ci]" || echo "No changes"
+          git push
