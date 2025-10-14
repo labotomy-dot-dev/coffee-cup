@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: tea-cup
-          image: ghcr.io/labotomy-dot-dev/coffee-cup-tea-cup:dev-8
+          image: ghcr.io/labotomy-dot-dev/coffee-cup-tea-cup:dev-9
           ports:
             - containerPort: 8080
           env:
