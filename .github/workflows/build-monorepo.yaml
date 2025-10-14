@@ -127,22 +127,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install yq
+      - name: Install jq and yq
         run: |
+          sudo apt-get update && sudo apt-get install -y jq
           sudo wget -qO /usr/local/bin/yq \
             https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
-
       - name: Promote changed apps from dev to prod
         run: |
-          APPS_JSON='${{ needs.detect-and-build.outputs.apps }}'
+          APPS_JSON="${{ needs.detect-and-build.outputs.apps }}"
           CHANGED_APPS=$(echo "$APPS_JSON" | jq -r '.[]')
 
           if [ -z "$CHANGED_APPS" ]; then
@@ -158,7 +157,6 @@ jobs:
             DEV_MANIFEST_PATH="products/$APP/deploy/dev"
             PROD_MANIFEST_PATH="products/$APP/deploy/prod"
 
-            # Extract dev image tag
             DEV_IMAGE=$(yq '.spec.template.spec.containers[0].image' "$DEV_MANIFEST_PATH/deploy.yaml")
             PROD_IMAGE=$(echo "$DEV_IMAGE" | sed 's/dev-/prod-/')
 
@@ -168,7 +166,6 @@ jobs:
             docker tag "$DEV_IMAGE" "$PROD_IMAGE"
             docker push "$PROD_IMAGE"
 
-            # Update prod manifest
             yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST_PATH/deploy.yaml"
 
             git config user.name "github-actions"
