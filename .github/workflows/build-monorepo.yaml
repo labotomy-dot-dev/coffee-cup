@@ -19,7 +19,9 @@ jobs:
     permissions:
       contents: write
       packages: write
-
+    outputs:
+      apps: ${{ steps.detect.outputs.apps }}
+      changed: ${{ steps.detect.outputs.changed }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -136,6 +138,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
+      - name: Debug changed apps
+        run: |
+          echo "Changed apps from detect-and-build: ${{ needs.detect-and-build.outputs.apps }}"
 
       - name: Promote changed apps from dev to prod
         run: |
