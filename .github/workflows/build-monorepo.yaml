@@ -116,7 +116,7 @@ jobs:
   promote-prod:
     name: Promote changed apps to production
     runs-on: ubuntu-latest
-    needs: test-in-cluster
+    needs: [detect-and-build, test-in-cluster]
     permissions:
       contents: write
       packages: write
