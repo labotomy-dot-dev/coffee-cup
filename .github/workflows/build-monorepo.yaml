@@ -1,4 +1,4 @@
-name: Build and Deploy Changed App
+name: Build and Deploy Changed Apps
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Detect changed app folder
+      - name: Detect changed apps
         id: detect
         run: |
           git fetch --depth=2 origin refs/heads/main
@@ -40,16 +40,17 @@ jobs:
           fi
 
           if [ -z "$CHANGED_APPS" ]; then
-            echo "No changes detected in any app. Exiting."
+            echo "No changes detected in any app."
+            echo "apps=[]" >> $GITHUB_OUTPUT
             echo "changed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Convert newline-separated list to space-separated
-          CHANGED_APPS=$(echo "$CHANGED_APPS" | tr '\n' ' ')
           echo "Detected changed apps: $CHANGED_APPS"
 
-          echo "apps=$CHANGED_APPS" >> $GITHUB_OUTPUT
+          # Convert to JSON array for safe output
+          CHANGED_APPS_JSON=$(echo "$CHANGED_APPS" | jq -R -s -c 'split("\n")[:-1]')
+          echo "apps=$CHANGED_APPS_JSON" >> $GITHUB_OUTPUT
           echo "changed=true" >> $GITHUB_OUTPUT
 
       - name: Stop if no changes detected
@@ -78,21 +79,23 @@ jobs:
       - name: Build and push Docker images for changed apps
         if: steps.detect.outputs.changed == 'true'
         run: |
-          for APP in ${{ steps.detect.outputs.apps }}; do
+          APPS_JSON='${{ steps.detect.outputs.apps }}'
+          CHANGED_APPS=$(echo "$APPS_JSON" | jq -r '.[]')
+
+          for APP in $CHANGED_APPS; do
             echo "Building app: $APP"
             SRC_PATH="products/$APP/src"
             DEV_MANIFEST_PATH="products/$APP/deploy/dev"
             TAG="dev-${{ github.run_number }}"
-            
+
             docker buildx build "$SRC_PATH" \
               --push \
-              --tag "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${APP}:$TAG"
-            
+              --tag "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-$APP:$TAG"
+
             echo "Updating manifests for $APP..."
-            yq -i ".spec.template.spec.containers[0].image = \
-              \"$REGISTRY/$IMAGE_NAME-$APP:$TAG\"" \
+            yq -i ".spec.template.spec.containers[0].image = \"$REGISTRY/$IMAGE_NAME-$APP:$TAG\"" \
               "$DEV_MANIFEST_PATH/deploy.yaml"
-            
+
             git config user.name "github-actions"
             git config user.email "actions@github.com"
             git add "$DEV_MANIFEST_PATH/deploy.yaml"
@@ -107,6 +110,7 @@ jobs:
     steps:
       - name: Run integration tests inside cluster
         run: echo "Running tests in dev cluster..."
+        # Add your real cluster test commands here
 
       - name: Check test results
         run: echo "All tests passed ✅"
@@ -121,7 +125,6 @@ jobs:
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -138,19 +141,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
-      - name: Debug changed apps
-        run: |
-          echo "Changed apps from detect-and-build: ${{ needs.detect-and-build.outputs.apps }}"
 
       - name: Promote changed apps from dev to prod
         run: |
-          CHANGED_APPS="${{ needs.detect-and-build.outputs.apps }}"
+          APPS_JSON='${{ needs.detect-and-build.outputs.apps }}'
+          CHANGED_APPS=$(echo "$APPS_JSON" | jq -r '.[]')
+
           if [ -z "$CHANGED_APPS" ]; then
             echo "No changed apps detected. Skipping promotion."
             exit 0
           fi
 
-          echo "Promoting the following apps to prod: $CHANGED_APPS"
+          echo "Promoting apps to prod: $CHANGED_APPS"
 
           for APP in $CHANGED_APPS; do
             echo "Processing app: $APP"
@@ -158,14 +160,8 @@ jobs:
             DEV_MANIFEST_PATH="products/$APP/deploy/dev"
             PROD_MANIFEST_PATH="products/$APP/deploy/prod"
 
-            # Extract image tag from dev manifest
+            # Extract dev image tag
             DEV_IMAGE=$(yq '.spec.template.spec.containers[0].image' "$DEV_MANIFEST_PATH/deploy.yaml")
-            if [ -z "$DEV_IMAGE" ]; then
-              echo "No image found in dev manifest for $APP. Skipping."
-              continue
-            fi
-
-            # Replace "dev-123" tag with "prod-123"
             PROD_IMAGE=$(echo "$DEV_IMAGE" | sed 's/dev-/prod-/')
 
             echo "Promoting image: $DEV_IMAGE -> $PROD_IMAGE"
@@ -174,9 +170,8 @@ jobs:
             docker tag "$DEV_IMAGE" "$PROD_IMAGE"
             docker push "$PROD_IMAGE"
 
-            # Update prod manifest with new image
-            yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" \
-              "$PROD_MANIFEST_PATH/deploy.yaml"
+            # Update prod manifest
+            yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST_PATH/deploy.yaml"
 
             git config user.name "github-actions"
             git config user.email "actions@github.com"
@@ -189,7 +184,7 @@ jobs:
       - name: Run production smoke tests
         run: |
           echo "Running smoke tests in prod..."
-          # Example health check:
-          # for APP in ${{ needs.detect-and-build.outputs.apps }}; do
+          # Example: curl health endpoints
+          # for APP in $CHANGED_APPS; do
           #   curl -f "https://prod.example.com/$APP/health" || exit 1
           # done
