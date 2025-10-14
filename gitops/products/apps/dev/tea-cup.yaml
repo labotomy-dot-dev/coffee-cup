@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: tee-cup-dev
+  name: tea-cup-dev
   namespace: argocd
 spec:
   project: dev
   source:
     repoURL: 'https://github.com/labotomy-dot-dev/coffee-cup.git'
     targetRevision: main
-    path: products/tee-cup/deploy/dev
+    path: products/tea-cup/deploy/dev
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: dev
