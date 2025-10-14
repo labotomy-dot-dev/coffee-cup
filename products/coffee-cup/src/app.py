@@ -7,7 +7,7 @@ app = Flask(__name__)
 @app.route("/")
 def hello():
     env = os.getenv("ENVIRONMENT", "dev")
-    return f"Hello from Python in {env} environment!"
+    return f"Hello from Python in {env} environment! I'am a coffee cup."
 
 
 if __name__ == "__main__":
