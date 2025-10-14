@@ -46,7 +46,7 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "Detected changed apps: $CHANGED_APPS"
-            CHANGED_APPS_JSON=$(echo "$CHANGED_APPS" | jq -R -s -c 'split("\n")[:-1]')
+            CHANGED_APPS_JSON=$(echo "$CHANGED_APPS" | jq -R -s -c 'split(" ") | map(select(length > 0))')
             echo "apps=$CHANGED_APPS_JSON" >> $GITHUB_OUTPUT
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
