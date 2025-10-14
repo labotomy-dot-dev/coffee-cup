@@ -39,19 +39,17 @@ jobs:
             CHANGED_APPS=$(echo "$CHANGED_FILES" | grep '^products/' | cut -d'/' -f2 | sort -u)
           fi
 
+          # Convert newline-separated list to JSON array
           if [ -z "$CHANGED_APPS" ]; then
             echo "No changes detected in any app."
             echo "apps=[]" >> $GITHUB_OUTPUT
             echo "changed=false" >> $GITHUB_OUTPUT
-            exit 0
+          else
+            echo "Detected changed apps: $CHANGED_APPS"
+            CHANGED_APPS_JSON=$(echo "$CHANGED_APPS" | jq -R -s -c 'split("\n")[:-1]')
+            echo "apps=$CHANGED_APPS_JSON" >> $GITHUB_OUTPUT
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
-
-          echo "Detected changed apps: $CHANGED_APPS"
-
-          # Convert to JSON array for safe output
-          CHANGED_APPS_JSON=$(echo "$CHANGED_APPS" | jq -R -s -c 'split("\n")[:-1]')
-          echo "apps=$CHANGED_APPS_JSON" >> $GITHUB_OUTPUT
-          echo "changed=true" >> $GITHUB_OUTPUT
 
       - name: Stop if no changes detected
         if: steps.detect.outputs.changed == 'false'
