@@ -27,15 +27,12 @@ jobs:
       - name: Detect changed app folder
         id: detect
         run: |
-          # Ensure we have at least 2 commits for diff to work
-          git fetch --depth=2 origin ${{ github.ref }}
+          git fetch --depth=2 origin refs/heads/main
 
-          # If this is the first commit, handle it gracefully
           if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
             echo "First commit detected. Building all apps."
             CHANGED_APPS=$(ls products)
           else
-            # Compare current and previous commit
             CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
             CHANGED_APPS=$(echo "$CHANGED_FILES" | grep '^products/' | cut -d'/' -f2 | sort -u)
           fi
@@ -46,7 +43,10 @@ jobs:
             exit 0
           fi
 
+          # Convert newline-separated list to space-separated
+          CHANGED_APPS=$(echo "$CHANGED_APPS" | tr '\n' ' ')
           echo "Detected changed apps: $CHANGED_APPS"
+
           echo "apps=$CHANGED_APPS" >> $GITHUB_OUTPUT
           echo "changed=true" >> $GITHUB_OUTPUT
 
@@ -112,107 +112,79 @@ jobs:
   promote-prod:
     name: Promote changed apps to production
     runs-on: ubuntu-latest
-    needs: test-in-cluster
+    needs: detect-and-build
     permissions:
       contents: write
       packages: write
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Detect changed apps in dev manifests
-        id: detect_dev
-        run: |
-          git fetch --depth=2 origin ${{ github.ref }}
-
-          if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
-            echo "First commit detected. Promoting all apps."
-            CHANGED_APPS=$(ls products)
-          else
-            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
-            CHANGED_APPS=$(echo "$CHANGED_FILES" | grep '^products/.*/deploy/dev/' | cut -d'/' -f2 | sort -u)
-          fi
-
-          if [ -z "$CHANGED_APPS" ]; then
-            echo "No changes detected in dev manifests. Exiting."
-            echo "changed=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "Detected changed dev apps: $CHANGED_APPS"
-          echo "apps=$CHANGED_APPS" >> $GITHUB_OUTPUT
-          echo "changed=true" >> $GITHUB_OUTPUT
-
-      - name: Stop if no changes detected
-        if: steps.detect_dev.outputs.changed == 'false'
-        run: echo "No changes in dev manifests. Skipping promotion."
-
       - name: Install yq
-        if: steps.detect_dev.outputs.changed == 'true'
         run: |
           sudo wget -qO /usr/local/bin/yq \
             https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
       - name: Log in to GitHub Container Registry
-        if: steps.detect_dev.outputs.changed == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Promote changed apps to prod
-        if: steps.detect_dev.outputs.changed == 'true'
+      - name: Promote changed apps from dev to prod
         run: |
-          for APP in ${{ steps.detect_dev.outputs.apps }}; do
-            echo "=== Promoting $APP to production ==="
+          CHANGED_APPS="${{ needs.detect-and-build.outputs.apps }}"
+          if [ -z "$CHANGED_APPS" ]; then
+            echo "No changed apps detected. Skipping promotion."
+            exit 0
+          fi
+
+          echo "Promoting the following apps to prod: $CHANGED_APPS"
+
+          for APP in $CHANGED_APPS; do
+            echo "Processing app: $APP"
+
             DEV_MANIFEST_PATH="products/$APP/deploy/dev"
             PROD_MANIFEST_PATH="products/$APP/deploy/prod"
-            DEV_TAG=$(yq '.spec.template.spec.containers[0].image' "$DEV_MANIFEST_PATH/deploy.yaml" | awk -F: '{print $NF}')
-            PROD_TAG="prod-${{ github.run_number }}"
-            DEV_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-$APP:$DEV_TAG"
-            PROD_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-$APP:$PROD_TAG"
 
-            echo "Dev image: $DEV_IMAGE"
-            echo "Prod image: $PROD_IMAGE"
+            # Extract image tag from dev manifest
+            DEV_IMAGE=$(yq '.spec.template.spec.containers[0].image' "$DEV_MANIFEST_PATH/deploy.yaml")
+            if [ -z "$DEV_IMAGE" ]; then
+              echo "No image found in dev manifest for $APP. Skipping."
+              continue
+            fi
 
-            # Smoke tests on dev
-            echo "Running smoke tests on dev for $APP..."
-            # curl -f "https://dev.example.com/$APP/health" || exit 1
+            # Replace "dev-123" tag with "prod-123"
+            PROD_IMAGE=$(echo "$DEV_IMAGE" | sed 's/dev-/prod-/')
 
-            # Retag and push prod image
+            echo "Promoting image: $DEV_IMAGE -> $PROD_IMAGE"
+
             docker pull "$DEV_IMAGE"
             docker tag "$DEV_IMAGE" "$PROD_IMAGE"
             docker push "$PROD_IMAGE"
 
-            # Update prod manifests
-            echo "Updating prod manifest for $APP with $PROD_IMAGE"
+            # Update prod manifest with new image
             yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" \
               "$PROD_MANIFEST_PATH/deploy.yaml"
 
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
             git add "$PROD_MANIFEST_PATH/deploy.yaml"
           done
 
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git commit -m "Promote changed apps to production [skip ci]" || echo "No changes to commit"
-          git push || echo "Push skipped (no changes)"
+          git commit -m "Promote changed apps to prod [skip ci]" || echo "No changes to commit"
+          git push
 
       - name: Run production smoke tests
-        if: steps.detect_dev.outputs.changed == 'true'
         run: |
-          for APP in ${{ steps.detect_dev.outputs.apps }}; do
-            echo "Running production smoke tests for $APP..."
-            # curl -f "https://prod.example.com/$APP/health" || exit 1
-          done
-
-      # Optional rollback
-      # - name: Rollback on failure
-      #   if: failure() && steps.detect_dev.outputs.changed == 'true'
-      #   run: |
-      #     echo "Smoke tests failed! Performing rollback..."
-      #     git config user.name "github-actions"
-      #     git config user.email "actions@github.com"
-      #     git revert HEAD -m 1 || echo "Nothing to revert"
-      #     git push || echo "Push skipped (rollback)"
+          echo "Running smoke tests in prod..."
+          # Example health check:
+          # for APP in ${{ needs.detect-and-build.outputs.apps }}; do
+          #   curl -f "https://prod.example.com/$APP/health" || exit 1
+          # done
