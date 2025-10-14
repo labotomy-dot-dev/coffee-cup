@@ -202,8 +202,6 @@ separation of responsibilities while maintaining a fully automated GitOps workfl
 
 ## Application onboarding and App of Apps pattern
 
-**WORK IN PROGRESS**
-
 - **Developers’ apps location**:
   All developer applications are stored in the repository under:
 
@@ -248,7 +246,7 @@ metadata:
 spec:
   project: dev
   source:
-    repoURL: 'https://github.com/labotomy-dot-dev/gitops.git'
+    repoURL: 'https://github.com/labotomy-dot-dev/coffee-cup.git'
     targetRevision: main
     path: products/coffee-cup/deploy/dev
   destination:
@@ -258,48 +256,29 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
 ```
 
 **Example App of Apps for dev**
 
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: products-dev
-  namespace: argocd
-spec:
-  project: dev
-  source:
-    repoURL: 'https://github.com/labotomy-dot-dev/gitops.git'
-    targetRevision: main
-    path: products/apps/dev
-  destination:
-    server: 'https://kubernetes.default.svc'
-    namespace: dev
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-```
-
-**Example App of Apps for prod**
+Notice that parent app lives in `argocd` namespace and project is `platform`.
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: products-prod
+  name: dev-apps-products
   namespace: argocd
 spec:
-  project: prod
+  project: platform
   source:
-    repoURL: 'https://github.com/labotomy-dot-dev/gitops.git'
+    repoURL: 'https://github.com/labotomy-dot-dev/coffee-cup.git'
     targetRevision: main
-    path: products/apps/prod
+    path: gitops/products/apps/dev
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: prod
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true
