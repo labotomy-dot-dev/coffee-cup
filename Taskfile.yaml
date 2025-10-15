@@ -10,6 +10,9 @@ env:
   MANIFESTS_BASE_PATH: "{{.REPO_PATH}}/gitops/platform/manifests/generated"
 
 tasks:
+  ##########################
+  # Build & Push
+  ##########################
   build.dev:
     desc: build container image for dev environment
     dir: ./products/coffee-cup/src
@@ -34,6 +37,9 @@ tasks:
       - echo "$GITHUB_TOKEN" | docker login ghcr.io -u labotomy-dot-dev --password-stdin
       - docker push ghcr.io/labotomy-dot-dev/coffee-cup:latest
       - docker push ghcr.io/labotomy-dot-dev/coffee-cup:prod
+  ##########################
+  # Deployment
+  ##########################
   deploy.dev.kubectl:
     desc: deploy to dev
     cmds:
@@ -51,25 +57,19 @@ tasks:
   deploy.argocd.apps:
     desc: deploy apps to argocd
     cmds:
-      - kubectl apply -f gitops/platform/apps/products --recursive
-  dev.up:
-    desc: build & deploy to dev
-    cmds:
-      - task: build.dev
-      - task: push.dev
-      #- task: deploy.dev.kubectl
-      - task: deploy.dev.argocd
-  prod.up:
-    desc: build & deploy to prod
-    cmds:
-      - task: build.dev
-      - task: push.prod
-      #- task: deploy.prod.kubectl
-      - task: deploy.dev.argocd
-  kubecontext:
+      - kubectl apply -f gitops/platform/apps/app_of_apps --recursive
+  ##########################
+  # Cluster Management
+  ##########################
+  cluster.kubecontext:
     desc: select kubernetes kubecontext
     cmds:
       - kubectl config use-context kind-$WORKLOAD_CLUSTER_NAME
+  cluster.up:
+    desc: prepare the cluster
+    cmds:
+      - task: cluster.create
+      - task: cluster.kubecontext
   cluster.create:
     desc: create kind cluster
     cmds:
@@ -83,28 +83,67 @@ tasks:
               kind create cluster --config cluster.yaml --name $WORKLOAD_CLUSTER_NAME
           fi
         done
+  ##########################
+  # Ingress Management
+  ##########################
   ingress.up:
     desc: install ingress nginx -> https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx
     silent: true
     cmds:
+      - task: cluster.kubecontext
       - helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
       - helm repo update ingress-nginx
       - kubectl get ns ingress-nginx || kubectl create ns ingress-nginx
       - helm -n ingress-nginx upgrade --install ingress-nginx ingress-nginx/ingress-nginx -f ingress-nginx.yaml --version 4.13.3 --wait
+  ##########################
+  # Render Manifests
+  ##########################
+  render.dev:
+    desc: renders k8s manifests for dev
+    cmds:
+      - |
+        MANIFESTS_PATH="$MANIFESTS_BASE_PATH/dev"
+        echo "$MANIFESTS_PATH"
+        rm -rf $MANIFESTS_PATH
+        # use helmfile --debug to print more info
+        helmfile -f ./helmfile.yaml template -e dev --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
+  render.prod:
+    desc: renders k8s manifests for prod
+    cmds:
+      - |
+        MANIFESTS_PATH="$MANIFESTS_BASE_PATH/prod"
+        echo "$MANIFESTS_PATH"
+        rm -rf $MANIFESTS_PATH
+        # use helmfile --debug to print more info
+        helmfile -f ./helmfile.yaml template -e prod --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
+  ##########################
+  # ArgoCD Management
+  ##########################
+  argocd.notification.secret:
+    desc: configure notification controller secret
+    cmds:
+      - |
+        # fail if GITHUB_TOKEN is not set
+        : "${GITHUB_TOKEN:?GITHUB_TOKEN environment variable is required}"
+
+        kubectl create secret generic argocd-notifications-secret \
+          -n argocd \
+          --from-literal=github_token=$GITHUB_TOKEN
   argocd.up:
     desc: Install argo cd in kubernetes cluster
     silent: true
     # Helm chart is here https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
     cmds:
+      - task: cluster.kubecontext
+      #- task: argocd.notification.secret
       - helm repo add argo https://argoproj.github.io/argo-helm
       - helm repo update argo
       - kubectl get ns argocd || kubectl create ns argocd
       - helm -n argocd upgrade --install argocd argo/argo-cd -f argocd.yaml --version 8.6.0 --wait
-  cluster.up:
-    desc: prepare the cluster
+  argocd.port-forward:
+    desc: port-forward argocd service to localhost:8080
     cmds:
-      - task: cluster.create
-      - task: kubecontext
+      - kubectl -n argocd port-forward service/argocd-server 8080:80
   argocd.admin.password:
     desc: print argocd admin password
     silent: true
@@ -125,34 +164,23 @@ tasks:
           }
         }'
         kubectl rollout restart deployment argocd-server -n argocd
-  render.cmd.dev:
-    desc: renders k8s manifests for dev
+  ##########################
+  # Combined / Meta Tasks
+  ##########################
+  dev.up:
+    desc: build & deploy to dev
     cmds:
-      - |
-        MANIFESTS_PATH="$MANIFESTS_BASE_PATH/dev"
-        echo "$MANIFESTS_PATH"
-        rm -rf $MANIFESTS_PATH
-        # use helmfile --debug to print more info
-        helmfile -f ./helmfile.yaml template -e dev --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
-  render.cmd.prod:
-    desc: renders k8s manifests for prod
+      - task: build.dev
+      - task: push.dev
+      #- task: deploy.dev.kubectl
+      - task: deploy.dev.argocd
+  prod.up:
+    desc: build & deploy to prod
     cmds:
-      - |
-        MANIFESTS_PATH="$MANIFESTS_BASE_PATH/prod"
-        echo "$MANIFESTS_PATH"
-        rm -rf $MANIFESTS_PATH
-        # use helmfile --debug to print more info
-        helmfile -f ./helmfile.yaml template -e prod --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
-  argocd.notification.secret:
-    desc: configure notification controller secret
-    cmds:
-      - |
-        # fail if GITHUB_TOKEN is not set
-        : "${GITHUB_TOKEN:?GITHUB_TOKEN environment variable is required}"
-
-        kubectl create secret generic argocd-notifications-secret \
-          -n argocd \
-          --from-literal=github_token=$GITHUB_TOKEN
+      - task: build.dev
+      - task: push.prod
+      #- task: deploy.prod.kubectl
+      - task: deploy.dev.argocd
   lab.info:
     desc: print lab info
     silent: true
@@ -177,7 +205,3 @@ tasks:
       - task: deploy.argocd.projects
       - task: deploy.argocd.apps
       - task: lab.info
-  argocd.port-forward:
-    desc: port-forward argocd service to localhost:8080
-    cmds:
-      - kubectl -n argocd port-forward service/argocd-server 8080:80

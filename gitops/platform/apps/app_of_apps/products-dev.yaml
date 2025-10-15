@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: prod-apps-products
+  name: products-apps-dev
   namespace: argocd
 spec:
   project: platform
   source:
     repoURL: 'https://github.com/labotomy-dot-dev/coffee-cup.git'
     targetRevision: main
-    path: gitops/products/apps/prod
+    path: gitops/products/apps/dev
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: argocd
