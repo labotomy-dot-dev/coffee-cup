@@ -8,7 +8,8 @@
     "kubernetes-helm@latest",
     "argocd@latest",
     "helmfile@0.171.0",
-    "yq@latest"
+    "yq@latest",
+    "lefthook@latest"
   ],
   "shell": {
     "init_hook": [
