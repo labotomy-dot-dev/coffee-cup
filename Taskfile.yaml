@@ -8,56 +8,37 @@ env:
   WORKLOAD_CLUSTER_NAME: "coffee-cup"
   REPO_PATH: "{{.REPO_PATH}}"
   MANIFESTS_BASE_PATH: "{{.REPO_PATH}}/gitops/platform/manifests/generated"
+  REGISTRY: "ghcr.io/labotomy-dot-dev"
+  DEFAULT_APP: "coffee-cup"
+  DEFAULT_ENV: "dev"
 
 tasks:
   ##########################
   # Build & Push
   ##########################
-  build.dev:
-    desc: build container image for dev environment
-    dir: ./products/coffee-cup/src
+  build:
+    desc: build container image for given app/env
+    vars:
+      APP: "{{.APP | default .DEFAULT_APP}}"
+      ENV: "{{.ENV | default .DEFAULT_ENV}}"
+    dir: ./products/{{.APP}}/src
     cmds:
-      - docker build -t ghcr.io/labotomy-dot-dev/coffee-cup:latest .
-      - docker tag ghcr.io/labotomy-dot-dev/coffee-cup:latest ghcr.io/labotomy-dot-dev/coffee-cup:dev
-  build.prod:
-    desc: build container image for prod environment
-    dir: ./products/coffee-cup/src
+      - |
+        echo "🔧 Building {{.APP}} for {{.ENV}}..."
+        docker build -t {{.REGISTRY}}/{{.APP}}:latest .
+        docker tag {{.REGISTRY}}/{{.APP}}:latest {{.REGISTRY}}/{{.APP}}:{{.ENV}}
+
+  push:
+    desc: push container image for given app/env
+    vars:
+      APP: "{{.APP | default .DEFAULT_APP}}"
+      ENV: "{{.ENV | default .DEFAULT_ENV}}"
     cmds:
-      - docker build -t ghcr.io/labotomy-dot-dev/coffee-cup:latest .
-      - docker tag ghcr.io/labotomy-dot-dev/coffee-cup:latest ghcr.io/labotomy-dot-dev/coffee-cup:prod
-  push.dev:
-    desc: push dev container image
-    cmds:
-      - echo "$GITHUB_TOKEN" | docker login ghcr.io -u labotomy-dot-dev --password-stdin
-      - docker push ghcr.io/labotomy-dot-dev/coffee-cup:latest
-      - docker push ghcr.io/labotomy-dot-dev/coffee-cup:dev
-  push.prod:
-    desc: push prod container image
-    cmds:
-      - echo "$GITHUB_TOKEN" | docker login ghcr.io -u labotomy-dot-dev --password-stdin
-      - docker push ghcr.io/labotomy-dot-dev/coffee-cup:latest
-      - docker push ghcr.io/labotomy-dot-dev/coffee-cup:prod
-  ##########################
-  # Deployment
-  ##########################
-  deploy.dev.kubectl:
-    desc: deploy to dev
-    cmds:
-      - kubectl get ns dev || kubectl create ns dev
-      - kubectl apply -f deploy/dev/deploy.yaml
-  deploy.prod.kubectl:
-    desc: deploy to prod
-    cmds:
-      - kubectl get ns prod || kubectl create ns prod
-      - kubectl apply -f deploy/prod/deploy.yaml
-  deploy.argocd.projects:
-    desc: deploy projects to argocd
-    cmds:
-      - kubectl apply -f gitops/platform/projects
-  deploy.argocd.apps:
-    desc: deploy apps to argocd
-    cmds:
-      - kubectl apply -f gitops/platform/apps/app_of_apps --recursive
+      - |
+        echo "🚀 Pushing {{.APP}} for {{.ENV}}..."
+        echo "$GITHUB_TOKEN" | docker login ghcr.io -u labotomy-dot-dev --password-stdin
+        docker push {{.REGISTRY}}/{{.APP}}:latest
+        docker push {{.REGISTRY}}/{{.APP}}:{{.ENV}}
   ##########################
   # Cluster Management
   ##########################
@@ -98,27 +79,27 @@ tasks:
   ##########################
   # Render Manifests
   ##########################
-  render.dev:
-    desc: renders k8s manifests for dev
+  render:
+    desc: render K8s manifests for given environment
+    vars:
+      ENV: "{{.ENV | default .DEFAULT_ENV}}"
     cmds:
       - |
-        MANIFESTS_PATH="$MANIFESTS_BASE_PATH/dev"
-        echo "$MANIFESTS_PATH"
+        echo "🧩 Rendering manifests for {{.ENV}}..."
+        MANIFESTS_PATH="$MANIFESTS_BASE_PATH/{{.ENV}}"
         rm -rf $MANIFESTS_PATH
-        # use helmfile --debug to print more info
-        helmfile -f ./helmfile.yaml template -e dev --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
-  render.prod:
-    desc: renders k8s manifests for prod
-    cmds:
-      - |
-        MANIFESTS_PATH="$MANIFESTS_BASE_PATH/prod"
-        echo "$MANIFESTS_PATH"
-        rm -rf $MANIFESTS_PATH
-        # use helmfile --debug to print more info
-        helmfile -f ./helmfile.yaml template -e prod --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
+        helmfile -f ./helmfile.yaml template -e {{.ENV}} --output-dir-template $MANIFESTS_PATH/{{.Release.Name}}
   ##########################
   # ArgoCD Management
   ##########################
+  argocd.deploy.projects:
+    desc: deploy projects to argocd
+    cmds:
+      - kubectl apply -f gitops/platform/projects
+  argocd.deploy.apps:
+    desc: deploy apps to argocd
+    cmds:
+      - kubectl apply -f gitops/platform/apps/app_of_apps --recursive
   argocd.notification.secret:
     desc: configure notification controller secret
     cmds:
@@ -202,6 +183,6 @@ tasks:
       - task: ingress.up
       - task: argocd.up
       - task: argocd.accounts.passwords
-      - task: deploy.argocd.projects
-      - task: deploy.argocd.apps
+      - task: argocd.deploy.projects
+      - task: argocd.deploy.apps
       - task: lab.info
