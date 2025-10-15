@@ -5,6 +5,9 @@ metadata:
   namespace: argocd
   finalizers:
     - argocd.argoproj.io/resources-finalizer
+  labels:
+    app.kubernetes.io/instance: mailhog
+    app.kubernetes.io/part-of: platform
 spec:
   project: platform
   source:
