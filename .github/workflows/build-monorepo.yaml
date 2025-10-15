@@ -147,13 +147,12 @@ jobs:
           echo '${{ needs.detect-and-build.outputs.apps }}' | jq -r '.[]'
       - name: Promote changed apps from dev to prod
         run: |
-          APPS_JSON="${{ needs.detect-and-build.outputs.apps }}"
-          CHANGED_APPS=$(echo "$APPS_JSON" | jq -r '.[]')
+          APPS_JSON='${{ needs.detect-and-build.outputs.apps }}'
+          echo "Raw JSON: $APPS_JSON"
+          echo "$APPS_JSON" | jq .
 
-          if [ -z "$CHANGED_APPS" ]; then
-            echo "No changed apps detected. Skipping promotion."
-            exit 0
-          fi
+          CHANGED_APPS=$(echo "$APPS_JSON" | jq -r '.[]')
+          echo "Parsed apps: $CHANGED_APPS"
 
           echo "Promoting apps to prod: $CHANGED_APPS"
 
