@@ -3,10 +3,13 @@ version: 3
 vars:
   REPO_PATH:
     sh: git rev-parse --show-toplevel
+  REPO_NAME:
+    sh: basename $(git rev-parse --show-toplevel)
 
 env:
   WORKLOAD_CLUSTER_NAME: "coffee-cup"
   REPO_PATH: "{{.REPO_PATH}}"
+  REPO_NAME: "{{.REPO_NAME}}"
   MANIFESTS_BASE_PATH: "{{.REPO_PATH}}/gitops/platform/manifests/generated"
   REGISTRY: "ghcr.io/labotomy-dot-dev"
   DEFAULT_APP: "coffee-cup"
@@ -24,9 +27,9 @@ tasks:
     dir: ./products/{{.APP}}/src
     cmds:
       - |
-        echo "🔧 Building {{.APP}} for {{.ENV}}..."
-        docker build -t {{.REGISTRY}}/{{.APP}}:latest .
-        docker tag {{.REGISTRY}}/{{.APP}}:latest {{.REGISTRY}}/{{.APP}}:{{.ENV}}
+        echo "🔧 Building {{.REPO_NAME}}-{{.APP}} for {{.ENV}}..."
+        docker build -t {{.REGISTRY}}/{{.REPO_NAME}}-{{.APP}}:latest .
+        docker tag {{.REGISTRY}}/{{.APP}}:latest {{.REGISTRY}}/{{.REPO_NAME}}-{{.APP}}:{{.ENV}}
 
   push:
     desc: push container image for given app/env
@@ -35,10 +38,10 @@ tasks:
       ENV: "{{.ENV | default .DEFAULT_ENV}}"
     cmds:
       - |
-        echo "🚀 Pushing {{.APP}} for {{.ENV}}..."
+        echo "🚀 Pushing {{.REPO_NAME}}-{{.APP}} for {{.ENV}}..."
         echo "$GITHUB_TOKEN" | docker login ghcr.io -u labotomy-dot-dev --password-stdin
-        docker push {{.REGISTRY}}/{{.APP}}:latest
-        docker push {{.REGISTRY}}/{{.APP}}:{{.ENV}}
+        docker push {{.REGISTRY}}/{{.REPO_NAME}}-{{.APP}}:latest
+        docker push {{.REGISTRY}}/{{.REPO_NAME}}-{{.APP}}:{{.ENV}}
   ##########################
   # Cluster Management
   ##########################
