@@ -91,6 +91,7 @@ jobs:
               --tag "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-$APP:$TAG"
 
             echo "Updating manifests for $APP..."
+            git pull origin main
             yq -i ".spec.template.spec.containers[0].image = \"$REGISTRY/$IMAGE_NAME-$APP:$TAG\"" \
               "$DEV_MANIFEST_PATH/deploy.yaml"
 
@@ -171,6 +172,8 @@ jobs:
             docker tag "$DEV_IMAGE" "$PROD_IMAGE"
             docker push "$PROD_IMAGE"
 
+            echo "Updating production manifest for $APP..."
+            git pull origin main
             yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST_PATH/deploy.yaml"
 
             git config user.name "github-actions"
