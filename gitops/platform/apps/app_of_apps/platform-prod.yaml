@@ -3,6 +3,9 @@ kind: Application
 metadata:
   name: platform-apps-prod
   namespace: argocd
+  labels:
+    app.kubernetes.io/instance: platform-apps-prod
+    app.kubernetes.io/part-of: platform
 spec:
   project: platform
   source:

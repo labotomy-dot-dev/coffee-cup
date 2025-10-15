@@ -3,6 +3,9 @@ kind: Application
 metadata:
   name: tea-cup-dev
   namespace: argocd
+  labels:
+    app.kubernetes.io/instance: tea-cup-dev
+    app.kubernetes.io/part-of: tea-cup
 spec:
   project: dev
   source:
