@@ -21,6 +21,7 @@
     - [Example Notification setup](#example-notification-setup)
     - [Example GitHub Workflow Triggered](#example-github-workflow-triggered)
 - [Lab setup](#lab-setup)
+- [TODO](#todo)
 
 <!-- TOC end -->
 
@@ -508,3 +509,10 @@ task lab.up
 ```
 
 Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
+
+## TODO
+
+- [ ] Configure [application in any namespace](https://argo-cd.readthedocs.io/en/stable/operator-manual/app-any-namespace/)
+- [ ] Configure [Resource tracking](https://argo-cd.readthedocs.io/en/stable/user-guide/resource_tracking/)
+- [ ] Configure [Namespace based configuration for notifications](https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/#namespace-based-configuration)
+  - [ ] Configure Github workflow to react on notifications per app

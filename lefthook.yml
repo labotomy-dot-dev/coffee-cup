@@ -1,0 +1,7 @@
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: toc
+      run: task toc
+      stage_fixed: true

@@ -189,3 +189,8 @@ tasks:
       - task: argocd.deploy.projects
       - task: argocd.deploy.apps
       - task: lab.info
+  toc:
+    desc: generate table of contents for the README markdown file
+    cmds:
+      - |
+        bitdowntoc --inplace --profile GITHUB README.md --indent-chars="-" --indent-spaces=2
