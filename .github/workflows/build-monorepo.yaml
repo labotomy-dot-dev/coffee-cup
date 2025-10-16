@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "products/**"
+      - "products/*/src/**"
       - ".github/workflows/build-monorepo.yaml"
   workflow_dispatch:
 
