@@ -183,7 +183,7 @@ notifications:
                 "app": "{{.app.metadata.name}}",
                 "project": "{{.app.spec.project}}",
                 "revision": "{{.app.status.sync.revision}}",
-                "images": {{ toJson .app.status.images }}
+                "images": {{ toJson .app.status.summary.images }}
               }
             }
   # 4. Define subscriptions
