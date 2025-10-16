@@ -67,16 +67,22 @@ jobs:
       - name: Check if dev image differs from prod
         id: check-image
         run: |
-          # Assume PROD_IMAGE is read from prod manifest
+          # Read current prod image from manifest
           PROD_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' products/coffee-cup/deploy/prod/deploy.yaml)
           echo "DEV_IMAGE=$FIRST_IMAGE"
           echo "PROD_IMAGE=$PROD_IMAGE"
 
-          if [ "$FIRST_IMAGE" = "$PROD_IMAGE" ]; then
-            echo "Images are the same. Skipping promotion."
+          # Extract only the tag (after last ':')
+          DEV_TAG="${FIRST_IMAGE##*:}"
+          PROD_TAG="${PROD_IMAGE##*:}"
+          echo "DEV_TAG=$DEV_TAG"
+          echo "PROD_TAG=$PROD_TAG"
+
+          if [ "$DEV_TAG" = "$PROD_TAG" ]; then
+            echo "Tags are the same. Skipping promotion."
             echo "PROMOTE=false" >> $GITHUB_ENV
           else
-            echo "New dev image detected. Promotion needed."
+            echo "New dev tag detected. Promotion needed."
             echo "PROMOTE=true" >> $GITHUB_ENV
           fi
 
