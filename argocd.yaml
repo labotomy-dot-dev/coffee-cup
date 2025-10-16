@@ -143,16 +143,17 @@ notifications:
           - github-app-sync-failed
         when: app.status.operationState.phase in ['Error', 'Failed']
 
+    trigger.on-resource-degraded: |
+      - description: Any resource is degraded (pod failed)
+        send:
+          - github-app-sync-failed
+        when: app.status.summary.health != 'Healthy'
+
   # 3. Define templates (reference the service by name)
   templates:
     template.github-app-sync-failed: |
       webhook:
         github:
-          method: POST
-          url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
-          headers:
-            Authorization: Bearer $github_token
-            Accept: application/vnd.github+json
           body: |
             {
               "event_type": "argocd-sync-failed",
@@ -165,11 +166,6 @@ notifications:
     template.github-app-sync-succeeded: |
       webhook:
         github:
-          method: POST
-          url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
-          headers:
-            Authorization: Bearer $github_token
-            Accept: application/vnd.github+json
           body: |
             {
               "event_type": "argocd-sync-succeeded",
