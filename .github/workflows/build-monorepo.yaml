@@ -103,91 +103,91 @@ jobs:
           git commit -m "Update image tags for changed apps [skip ci]" || echo "No changes"
           git push
 
-  test-in-cluster:
-    runs-on: ubuntu-latest
-    needs: detect-and-build
-    steps:
-      - name: Run integration tests inside cluster
-        run: echo "Running tests in dev cluster..."
-        # Add your real cluster test commands here
+  # test-in-cluster:
+  #   runs-on: ubuntu-latest
+  #   needs: detect-and-build
+  #   steps:
+  #     - name: Run integration tests inside cluster
+  #       run: echo "Running tests in dev cluster..."
+  #       # Add your real cluster test commands here
 
-      - name: Check test results
-        run: echo "All tests passed ✅"
+  #     - name: Check test results
+  #       run: echo "All tests passed ✅"
 
-  promote-prod:
-    name: Promote changed apps to production
-    runs-on: ubuntu-latest
-    needs: [detect-and-build, test-in-cluster]
-    permissions:
-      contents: write
-      packages: write
-    env:
-      REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  # promote-prod:
+  #   name: Promote changed apps to production
+  #   runs-on: ubuntu-latest
+  #   needs: [detect-and-build, test-in-cluster]
+  #   permissions:
+  #     contents: write
+  #     packages: write
+  #   env:
+  #     REGISTRY: ghcr.io
+  #     IMAGE_NAME: ${{ github.repository }}
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Install jq and yq
-        run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          sudo wget -qO /usr/local/bin/yq \
-            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+  #     - name: Install jq and yq
+  #       run: |
+  #         sudo apt-get update && sudo apt-get install -y jq
+  #         sudo wget -qO /usr/local/bin/yq \
+  #           https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+  #         sudo chmod +x /usr/local/bin/yq
+  #     - name: Log in to GitHub Container Registry
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GHCR_PAT }}
 
-      - name: Debug apps output
-        run: |
-          echo "Raw JSON from detect-and-build: '${{ needs.detect-and-build.outputs.apps }}'"
-          echo "Parsed apps:"
-          echo '${{ needs.detect-and-build.outputs.apps }}' | jq -r '.[]'
-      - name: Promote changed apps from dev to prod
-        run: |
-          APPS_JSON='${{ needs.detect-and-build.outputs.apps }}'
-          echo "Raw JSON: $APPS_JSON"
-          echo "$APPS_JSON" | jq .
+  #     - name: Debug apps output
+  #       run: |
+  #         echo "Raw JSON from detect-and-build: '${{ needs.detect-and-build.outputs.apps }}'"
+  #         echo "Parsed apps:"
+  #         echo '${{ needs.detect-and-build.outputs.apps }}' | jq -r '.[]'
+  #     - name: Promote changed apps from dev to prod
+  #       run: |
+  #         APPS_JSON='${{ needs.detect-and-build.outputs.apps }}'
+  #         echo "Raw JSON: $APPS_JSON"
+  #         echo "$APPS_JSON" | jq .
 
-          CHANGED_APPS=$(echo "$APPS_JSON" | jq -r '.[]')
-          echo "Parsed apps: $CHANGED_APPS"
+  #         CHANGED_APPS=$(echo "$APPS_JSON" | jq -r '.[]')
+  #         echo "Parsed apps: $CHANGED_APPS"
 
-          echo "Promoting apps to prod: $CHANGED_APPS"
+  #         echo "Promoting apps to prod: $CHANGED_APPS"
 
-          for APP in $CHANGED_APPS; do
-            echo "Processing app: $APP"
+  #         for APP in $CHANGED_APPS; do
+  #           echo "Processing app: $APP"
 
-            DEV_MANIFEST_PATH="products/$APP/deploy/dev"
-            PROD_MANIFEST_PATH="products/$APP/deploy/prod"
+  #           DEV_MANIFEST_PATH="products/$APP/deploy/dev"
+  #           PROD_MANIFEST_PATH="products/$APP/deploy/prod"
 
-            DEV_IMAGE=$(yq '.spec.template.spec.containers[0].image' "$DEV_MANIFEST_PATH/deploy.yaml")
-            PROD_IMAGE=$(echo "$DEV_IMAGE" | sed 's/dev-/prod-/')
+  #           DEV_IMAGE=$(yq '.spec.template.spec.containers[0].image' "$DEV_MANIFEST_PATH/deploy.yaml")
+  #           PROD_IMAGE=$(echo "$DEV_IMAGE" | sed 's/dev-/prod-/')
 
-            echo "Promoting image: $DEV_IMAGE -> $PROD_IMAGE"
+  #           echo "Promoting image: $DEV_IMAGE -> $PROD_IMAGE"
 
-            docker pull "$DEV_IMAGE"
-            docker tag "$DEV_IMAGE" "$PROD_IMAGE"
-            docker push "$PROD_IMAGE"
+  #           docker pull "$DEV_IMAGE"
+  #           docker tag "$DEV_IMAGE" "$PROD_IMAGE"
+  #           docker push "$PROD_IMAGE"
 
-            echo "Updating production manifest for $APP..."
-            git pull origin main
-            yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST_PATH/deploy.yaml"
+  #           echo "Updating production manifest for $APP..."
+  #           git pull origin main
+  #           yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST_PATH/deploy.yaml"
 
-            git config user.name "github-actions"
-            git config user.email "actions@github.com"
-            git add "$PROD_MANIFEST_PATH/deploy.yaml"
-          done
+  #           git config user.name "github-actions"
+  #           git config user.email "actions@github.com"
+  #           git add "$PROD_MANIFEST_PATH/deploy.yaml"
+  #         done
 
-          git commit -m "Promote changed apps to prod [skip ci]" || echo "No changes to commit"
-          git push
+  #         git commit -m "Promote changed apps to prod [skip ci]" || echo "No changes to commit"
+  #         git push
 
-      - name: Run production smoke tests
-        run: |
-          echo "Running smoke tests in prod..."
-          # Example: curl health endpoints
-          # for APP in $CHANGED_APPS; do
-          #   curl -f "https://prod.example.com/$APP/health" || exit 1
-          # done
+  #     - name: Run production smoke tests
+  #       run: |
+  #         echo "Running smoke tests in prod..."
+  #         # Example: curl health endpoints
+  #         # for APP in $CHANGED_APPS; do
+  #         #   curl -f "https://prod.example.com/$APP/health" || exit 1
+  #         # done
