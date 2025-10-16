@@ -22,6 +22,7 @@ jobs:
           echo "App: ${{ github.event.client_payload.app }}"
           echo "Project: ${{ github.event.client_payload.project }}"
           echo "Revision: ${{ github.event.client_payload.revision }}"
+          echo "Images: ${{ toJson(github.event.client_payload.images) }}"
           echo "✅ Argo CD finished syncing successfully!"
 
       - name: Normalize app name
