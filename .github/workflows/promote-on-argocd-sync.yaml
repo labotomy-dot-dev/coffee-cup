@@ -57,7 +57,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Extract first dev image
+        id: extract-image
+        run: |
+          IMAGES='${{ github.event.client_payload.images }}'
+          FIRST_IMAGE=$(echo "$IMAGES" | jq -r '.[0]')
+          echo "FIRST_IMAGE=$FIRST_IMAGE" >> $GITHUB_ENV
+
+      - name: Check if dev image differs from prod
+        id: check-image
+        run: |
+          # Assume PROD_IMAGE is read from prod manifest
+          PROD_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' products/coffee-cup/deploy/prod/deploy.yaml)
+          echo "DEV_IMAGE=$FIRST_IMAGE"
+          echo "PROD_IMAGE=$PROD_IMAGE"
+
+          if [ "$FIRST_IMAGE" = "$PROD_IMAGE" ]; then
+            echo "Images are the same. Skipping promotion."
+            echo "PROMOTE=false" >> $GITHUB_ENV
+          else
+            echo "New dev image detected. Promotion needed."
+            echo "PROMOTE=true" >> $GITHUB_ENV
+          fi
+
       - name: Install jq and yq
+        if: env.PROMOTE == 'true'
         run: |
           sudo apt-get update && sudo apt-get install -y jq
           sudo wget -qO /usr/local/bin/yq \
@@ -65,6 +89,7 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
 
       - name: Log in to GitHub Container Registry
+        if: env.PROMOTE == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -72,6 +97,7 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Promote the app to production
+        if: env.PROMOTE == 'true'
         shell: bash
         env:
           APP_BASE: ${{ needs.test-in-cluster.outputs.app_base }}
