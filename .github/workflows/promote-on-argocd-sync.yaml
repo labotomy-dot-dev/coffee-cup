@@ -1,84 +1,118 @@
 name: Test and Promote After ArgoCD Sync
 
 on:
-    repository_dispatch:
-        types: [argocd-sync-succeeded]
+  repository_dispatch:
+    types: [argocd-sync-succeeded]
 
 env:
-    REGISTRY: ghcr.io
-    IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-    test-in-cluster:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Print ArgoCD webhook payload
-              run: |
-                  echo "App: ${{ github.event.client_payload.app }}"
-                  echo "Project: ${{ github.event.client_payload.project }}"
-                  echo "Revision: ${{ github.event.client_payload.revision }}"
-                  echo "✅ Argo CD finished syncing successfully!"
+  test-in-cluster:
+    runs-on: ubuntu-latest
+    outputs:
+      app_base: ${{ steps.normalize.outputs.app_base }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            - name: Run integration tests in cluster
-              run: |
-                  echo "Running post-sync tests for app ${{ github.event.client_payload.app }} in dev cluster..."
-                  # Example:
-                  # kubectl -n dev rollout status deploy/${{ github.event.client_payload.app }}
-                  # pytest tests/integration/${{ github.event.client_payload.app }}/
+      - name: Print ArgoCD webhook payload
+        run: |
+          echo "App: ${{ github.event.client_payload.app }}"
+          echo "Project: ${{ github.event.client_payload.project }}"
+          echo "Revision: ${{ github.event.client_payload.revision }}"
+          echo "✅ Argo CD finished syncing successfully!"
 
-    promote-prod:
-        name: Promote to production
-        runs-on: ubuntu-latest
-        needs: test-in-cluster
-        permissions:
-            contents: write
-            packages: write
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+      - name: Normalize app name
+        id: normalize
+        shell: bash
+        run: |
+          ARGO_APP="${{ github.event.client_payload.app }}"
+          APP_BASE=$(echo "$ARGO_APP" | sed -E 's/-[^-]+$//')
+          echo "Normalized app name: $APP_BASE"
+          echo "app_base=$APP_BASE" >> $GITHUB_OUTPUT
 
-            - name: Install jq and yq
-              run: |
-                  sudo apt-get update && sudo apt-get install -y jq
-                  sudo wget -qO /usr/local/bin/yq \
-                    https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-                  sudo chmod +x /usr/local/bin/yq
+      - name: Run integration tests in cluster
+        shell: bash
+        run: |
+          APP_BASE="${{ steps.normalize.outputs.app_base }}"
+          echo "Running integration tests for app $APP_BASE in dev cluster..."
+          # Example:
+          # kubectl -n dev rollout status deploy/$APP_BASE
+          # pytest tests/integration/$APP_BASE/
 
-            - name: Log in to GitHub Container Registry
-              uses: docker/login-action@v3
-              with:
-                  registry: ghcr.io
-                  username: ${{ github.actor }}
-                  password: ${{ secrets.GHCR_PAT }}
+  promote-prod:
+    name: Promote to production
+    runs-on: ubuntu-latest
+    needs: test-in-cluster
+    permissions:
+      contents: write
+      packages: write
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            - name: Promote the app to production
-              run: |
-                  APP="${{ github.event.client_payload.app }}"
-                  echo "Promoting app: $APP"
+      - name: Install jq and yq
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
 
-                  DEV_MANIFEST_PATH="products/$APP/deploy/dev"
-                  PROD_MANIFEST_PATH="products/$APP/deploy/prod"
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
 
-                  DEV_IMAGE=$(yq '.spec.template.spec.containers[0].image' "$DEV_MANIFEST_PATH/deploy.yaml")
-                  PROD_IMAGE=$(echo "$DEV_IMAGE" | sed 's/dev-/prod-/')
+      - name: Promote the app to production
+        shell: bash
+        env:
+          APP_BASE: ${{ needs.test-in-cluster.outputs.app_base }}
+        run: |
+          echo "Promoting normalized app: $APP_BASE"
 
-                  echo "Promoting image: $DEV_IMAGE -> $PROD_IMAGE"
+          DEV_MANIFEST_PATH="products/$APP_BASE/deploy/dev"
+          PROD_MANIFEST_PATH="products/$APP_BASE/deploy/prod"
 
-                  docker pull "$DEV_IMAGE"
-                  docker tag "$DEV_IMAGE" "$PROD_IMAGE"
-                  docker push "$PROD_IMAGE"
+          echo "Using paths:"
+          echo "  Dev:  $DEV_MANIFEST_PATH"
+          echo "  Prod: $PROD_MANIFEST_PATH"
 
-                  echo "Updating production manifest..."
-                  git pull origin main
-                  yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST_PATH/deploy.yaml"
+          if [ ! -f "$DEV_MANIFEST_PATH/deploy.yaml" ]; then
+            echo "❌ Dev manifest not found at $DEV_MANIFEST_PATH/deploy.yaml"
+            exit 1
+          fi
 
-                  git config user.name "github-actions"
-                  git config user.email "actions@github.com"
-                  git add "$PROD_MANIFEST_PATH/deploy.yaml"
-                  git commit -m "Promote $APP to prod [skip ci]" || echo "No changes to commit"
-                  git push
+          DEV_IMAGE=$(yq '.spec.template.spec.containers[0].image' "$DEV_MANIFEST_PATH/deploy.yaml")
+          PROD_IMAGE=$(echo "$DEV_IMAGE" | sed 's/dev-/prod-/')
 
-            - name: Run production smoke test
-              run: |
-                  echo "Running smoke test for ${{ github.event.client_payload.app }}..."
-                  # curl -f "https://prod.example.com/${{ github.event.client_payload.app }}/health" || exit 1
+          echo "Promoting image: $DEV_IMAGE -> $PROD_IMAGE"
+
+          docker pull "$DEV_IMAGE"
+          docker tag "$DEV_IMAGE" "$PROD_IMAGE"
+          docker push "$PROD_IMAGE"
+
+          echo "Updating production manifest..."
+          git pull origin main
+          yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST_PATH/deploy.yaml"
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add "$PROD_MANIFEST_PATH/deploy.yaml"
+          git commit -m "Promote $APP_BASE to prod [skip ci]" || echo "No changes to commit"
+          git push
+
+      - name: Run production smoke test
+        shell: bash
+        env:
+          APP_BASE: ${{ needs.test-in-cluster.outputs.app_base }}
+        run: |
+          echo "Running smoke test for $APP_BASE..."
+          # curl -f "https://prod.example.com/$APP_BASE/health" || exit 1
+          echo "✅ Smoke test passed!"
