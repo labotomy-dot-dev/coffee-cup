@@ -60,7 +60,7 @@ jobs:
       - name: Extract first dev image
         id: extract-image
         run: |
-          IMAGES='${{ github.event.client_payload.images }}'
+          IMAGES='${{ toJson(github.event.client_payload.images) }}'
           FIRST_IMAGE=$(echo "$IMAGES" | jq -r '.[0]')
           echo "FIRST_IMAGE=$FIRST_IMAGE" >> $GITHUB_ENV
 
