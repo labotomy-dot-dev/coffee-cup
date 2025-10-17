@@ -22,65 +22,63 @@ jobs:
       - name: Print failure payload
         run: |
           echo "❌ ArgoCD sync failed!"
-          echo "App: ${{ github.event.client_payload.app }}"
-          echo "Project: ${{ github.event.client_payload.project }}"
-          echo "Revision: ${{ github.event.client_payload.revision }}"
+          echo "App: ${{ github.event.client_payload }}"
 
-      - name: Normalize app name
-        id: normalize
-        shell: bash
-        run: |
-          ARGO_APP="${{ github.event.client_payload.app }}"
-          APP_BASE=$(echo "$ARGO_APP" | sed -E 's/-[^-]+$//')
-          echo "Normalized app name: $APP_BASE"
-          echo "app_base=$APP_BASE" >> $GITHUB_OUTPUT
-
-      - name: Install tools
-        run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          sudo wget -qO /usr/local/bin/yq \
-            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-
-      - name: Attempt rollback of last known good image
-        shell: bash
-        env:
-          APP_BASE: ${{ steps.normalize.outputs.app_base }}
-        run: |
-          echo "Rolling back app: $APP_BASE"
-
-          DEV_MANIFEST_PATH="products/$APP_BASE/deploy/dev"
-          if [ ! -f "$DEV_MANIFEST_PATH/deploy.yaml" ]; then
-            echo "❌ Manifest not found at $DEV_MANIFEST_PATH/deploy.yaml"
-            exit 1
-          fi
-
-          echo "Checking git history for last known good image..."
-          PREV_IMAGE=$(git log -n 2 -p -- "$DEV_MANIFEST_PATH/deploy.yaml" \
-            | grep -E '^\+\s*image:' | tail -n 1 | sed 's/.*image: //')
-
-          if [ -z "$PREV_IMAGE" ]; then
-            echo "⚠️ No previous image found in git history. Skipping rollback."
-            exit 0
-          fi
-
-          echo "Found previous image: $PREV_IMAGE"
-          echo "Reverting manifest to last known good image..."
-
-          yq -i ".spec.template.spec.containers[0].image = \"$PREV_IMAGE\"" "$DEV_MANIFEST_PATH/deploy.yaml"
-
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add "$DEV_MANIFEST_PATH/deploy.yaml"
-          git commit -m "Rollback $APP_BASE to previous working image [skip ci]" || echo "No changes"
-          git push
-
-          echo "Rollback applied successfully ✅"
-
-      # - name: Notify failure in logs
+      # - name: Normalize app name
+      #   id: normalize
+      #   shell: bash
       #   run: |
-      #     echo "📣 Notify team: ArgoCD sync failed for app ${{ github.event.client_payload.app }}"
-      #     # Example integration:
-      #     # curl -X POST -H 'Content-type: application/json' \
-      #     #   --data '{"text":"ArgoCD sync failed for app ${{ github.event.client_payload.app }}. Rollback triggered."}' \
-      #     #   ${{ secrets.SLACK_WEBHOOK_URL }}
+      #     ARGO_APP="${{ github.event.client_payload.app }}"
+      #     APP_BASE=$(echo "$ARGO_APP" | sed -E 's/-[^-]+$//')
+      #     echo "Normalized app name: $APP_BASE"
+      #     echo "app_base=$APP_BASE" >> $GITHUB_OUTPUT
+
+      # - name: Install tools
+      #   run: |
+      #     sudo apt-get update && sudo apt-get install -y jq
+      #     sudo wget -qO /usr/local/bin/yq \
+      #       https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+      #     sudo chmod +x /usr/local/bin/yq
+
+      # - name: Attempt rollback of last known good image
+      #   shell: bash
+      #   env:
+      #     APP_BASE: ${{ steps.normalize.outputs.app_base }}
+      #   run: |
+      #     echo "Rolling back app: $APP_BASE"
+
+      #     DEV_MANIFEST_PATH="products/$APP_BASE/deploy/dev"
+      #     if [ ! -f "$DEV_MANIFEST_PATH/deploy.yaml" ]; then
+      #       echo "❌ Manifest not found at $DEV_MANIFEST_PATH/deploy.yaml"
+      #       exit 1
+      #     fi
+
+      #     echo "Checking git history for last known good image..."
+      #     PREV_IMAGE=$(git log -n 2 -p -- "$DEV_MANIFEST_PATH/deploy.yaml" \
+      #       | grep -E '^\+\s*image:' | tail -n 1 | sed 's/.*image: //')
+
+      #     if [ -z "$PREV_IMAGE" ]; then
+      #       echo "⚠️ No previous image found in git history. Skipping rollback."
+      #       exit 0
+      #     fi
+
+      #     echo "Found previous image: $PREV_IMAGE"
+      #     echo "Reverting manifest to last known good image..."
+
+      #     yq -i ".spec.template.spec.containers[0].image = \"$PREV_IMAGE\"" "$DEV_MANIFEST_PATH/deploy.yaml"
+
+      #     git config user.name "github-actions"
+      #     git config user.email "actions@github.com"
+      #     git add "$DEV_MANIFEST_PATH/deploy.yaml"
+      #     git commit -m "Rollback $APP_BASE to previous working image [skip ci]" || echo "No changes"
+      #     git push
+
+      #     echo "Rollback applied successfully ✅"
+
+      # # - name: Notify failure in logs
+      # #   run: |
+      # #     echo "📣 Notify team: ArgoCD sync failed for app ${{ github.event.client_payload.app }}"
+      # #     # Example integration:
+      # #     # curl -X POST -H 'Content-type: application/json' \
+      # #     #   --data '{"text":"ArgoCD sync failed for app ${{ github.event.client_payload.app }}. Rollback triggered."}' \
+      # #     #   ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -9,7 +9,9 @@
     "argocd@latest",
     "helmfile@0.171.0",
     "yq@latest",
-    "lefthook@latest"
+    "lefthook@latest",
+    "gomplate@latest",
+    "jq@latest"
   ],
   "shell": {
     "init_hook": [

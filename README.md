@@ -20,6 +20,7 @@
     - [Example Triggers and Templates](#example-triggers-and-templates)
     - [Example Notification setup](#example-notification-setup)
     - [Example GitHub Workflow Triggered](#example-github-workflow-triggered)
+  - [Troubleshooting notification controller](#troubleshooting-notification-controller)
 - [Lab setup](#lab-setup)
 - [TODO](#todo)
 
@@ -472,6 +473,61 @@ jobs:
           echo "Rollback triggered for ${{ github.event.client_payload.app }}"
           ./scripts/rollback_cli_.sh
 ```
+
+### Troubleshooting notification controller
+
+Argo CD Notification Controller job is to:
+
+1. Watch **Argo CD Application CRs**.
+2. Evaluate **triggers** when an Application’s status changes.
+3. Execute **templates** and send messages via **services** (e.g., Slack, GitHub, webhook, etc.).
+
+The configuration is driven by **ConfigMap** and **Secret** resources:
+
+- `argocd-notifications-cm` → defines triggers, templates, subscriptions, and services
+- `argocd-notifications-secret` → stores credentials or tokens used in templates
+
+What fields are available to send notifications? Run this:
+
+```bash
+kubectl -n argocd get application coffee-cup-dev -o yaml
+```
+
+Everything you see in that YAML is accessible in the template under `.app.<field path>`.
+
+If you want to experiment with template syntax safely, you can use the Argo CD CLI with local rendering:
+
+```bash
+argocd login argocd.labotomy.dev --grpc-we
+argocd app get coffee-cup-dev -o json > tmp/app.json
+# now you can check for fields
+jq -r '.status.operationState.phase' tmp/app.json\n
+jq -r '.status.summary.images[0]' tmp/app.json\n
+jq -r '.metadata.name' tmp/app.json\n
+```
+
+Here's the mapping you want to use in triggers & templates
+
+```text
+.metadata.name  ->  .app.metadata.name
+.spec.project   ->  .app.spec.project
+.status.summary.images[0] -> .app.status.summary.images[0]
+.status.operationState.phase -> app.status.operationState.phase
+```
+
+To run argocd-notifications commands manually inside the container to test templates, triggers, etc.
+run argocd notification controller pod in a job and execute into it:
+
+```bash
+# extract you argocd notification controller image name and version
+kubectl -n argocd get deploy argocd-notifications-controller \
+  -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+# change the job in helpers/debug-job.yaml image if it's different 
+kubectl apply -f helpers/debug-job.yaml
+kubectl -n argocd exec -it job/debug-notifications -- bash
+```
+
+You may want to try using [gomplate](https://github.com/hairyhenderson/gomplate) as well.
 
 ## Lab setup
 
