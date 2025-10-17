@@ -1,0 +1,15 @@
+name: Catch ArgoCD Events
+
+on:
+  repository_dispatch:
+
+jobs:
+  print-payload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print client_payload only
+        run: |
+          echo "===================="
+          echo "client_payload:"
+          cat $GITHUB_EVENT_PATH | jq '.client_payload'
+          echo "===================="

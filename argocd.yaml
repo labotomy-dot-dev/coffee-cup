@@ -137,7 +137,7 @@ notifications:
           - github-app-sync-succeeded
         when: |
           app.status.operationState.phase in ['Succeeded'] &&
-          (app.status.summary.images[1] == "")
+          app.status.summary.images[0] != ""
 
     trigger.on-sync-failed: |
       - description: Application syncing has failed
