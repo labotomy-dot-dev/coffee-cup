@@ -499,11 +499,12 @@ If you want to experiment with template syntax safely, you can use the Argo CD C
 
 ```bash
 argocd login argocd.labotomy.dev --grpc-we
-argocd app get coffee-cup-dev -o json > tmp/app.json
+argocd app get coffee-cup-dev -o json > tmp/coffee-cup-dev.json
+argocd app get coffee-cup-prod -o json > tmp/coffee-cup-prod.json
 # now you can check for fields
-jq -r '.status.operationState.phase' tmp/app.json\n
-jq -r '.status.summary.images[0]' tmp/app.json\n
-jq -r '.metadata.name' tmp/app.json\n
+jq -r '.status.operationState.phase' tmp/coffee-cup-dev.json\n
+jq -r '.status.summary.images[0]' tmp/coffee-cup-dev.json\n
+jq -r '.metadata.name' tmp/coffee-cup-dev.json\n
 ```
 
 Here's the mapping you want to use in triggers & templates

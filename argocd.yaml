@@ -132,10 +132,12 @@ notifications:
   # 2. Define triggers
   triggers:
     trigger.on-sync-succeeded: |
-      - description: Application syncing has succeeded
+      - description: Application has finished deploying dev image
         send:
           - github-app-sync-succeeded
-        when: app.status.operationState.phase in ['Succeeded']
+        when: |
+          app.status.operationState.phase in ['Succeeded'] &&
+          (app.status.summary.images[1] == "")
 
     trigger.on-sync-failed: |
       - description: Application syncing has failed
@@ -148,15 +150,27 @@ notifications:
         send:
           - github-app-sync-failed
         when: app.status.summary.health != 'Healthy'
-
-    trigger.on-sync-succeeded-new-image: |
-      - description: Application synced with new dev image
-        send:
-          - github-app-sync-succeeded
-        when: |
-          app.status.operationState.phase in ['Succeeded'] &&
-          app.status.summary.images[0] != ""
-
+    # trigger.on-resource-degraded: |
+    #   - description: A resource in the app has degraded
+    #     send:
+    #       - github-app-sync-failed
+    #     when: |
+    #       app.status.operationState.phase in ['Succeeded'] &&
+    #       any(app.status.conditions, cond -> cond.type == "Degraded" && cond.status == "True")
+    # trigger.on-sync-succeeded-new-image: |
+    #   - description: Application synced with new dev image
+    #     send:
+    #       - github-app-sync-succeeded
+    #     when: |
+    #       app.status.operationState.phase in ['Succeeded'] &&
+    #       app.status.summary.images[0] != ""
+    # trigger.on-sync-complete: |
+    #   - description: Application has finished deploying dev image
+    #     send:
+    #       - github-app-sync-succeeded
+    #     when: |
+    #       app.status.operationState.phase in ['Succeeded'] &&
+    #       (app.status.summary.images[1] == "")
   # 3. Define templates (reference the service by name)
   templates:
     template.github-app-sync-failed: |
@@ -203,4 +217,5 @@ notifications:
         - on-sync-succeeded
         - on-sync-failed
         - on-resource-degraded
-        - on-sync-succeeded-new-image
+        #- trigger.on-sync-complete
+        #- on-sync-succeeded-new-image
