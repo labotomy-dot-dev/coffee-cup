@@ -149,7 +149,7 @@ notifications:
       - description: Any resource is degraded (pod failed)
         send:
           - github-app-sync-failed
-        when: app.status.summary.health != 'Healthy'
+        when: app.status.health.status != 'Healthy'
     # trigger.on-resource-degraded: |
     #   - description: A resource in the app has degraded
     #     send:
