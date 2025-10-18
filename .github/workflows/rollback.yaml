@@ -73,7 +73,8 @@ jobs:
           fi
 
           # Build previous image name
-          PREV_IMAGE="${CURRENT_IMAGE/:prod-/:prod-$PREV_VERSION}"
+          IMAGE_PREFIX="${CURRENT_IMAGE%%:*}"
+          PREV_IMAGE="${IMAGE_PREFIX}:prod-$PREV_VERSION"
           echo "Rolling back to image: $PREV_IMAGE"
 
           # Update prod manifest
