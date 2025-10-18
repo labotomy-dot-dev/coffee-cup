@@ -2,24 +2,21 @@
 set -euo pipefail
 
 # Usage:
-#   ./trigger-promote.sh <app-name> <image> [project] [revision]
+#   ./trigger-promote.sh <app-name>
 # Example:
-#   ./trigger-promote.sh coffee-cup-dev ghcr.io/labotomy-dot-dev/coffee-cup-coffee-cup:dev-210 default f1c9a3b
+#   ./trigger-promote.sh coffee-cup-dev
 
 # --- Configuration ---
-GITHUB_OWNER="labotomy-dot-dev"          # e.g. my-org
-GITHUB_REPO="coffee-cup"                  # e.g. platform-rollbacks
-GITHUB_TOKEN="${GITHUB_TOKEN:-}"         # export before use
+GITHUB_OWNER="labotomy-dot-dev"
+GITHUB_REPO="coffee-cup"
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 EVENT_TYPE="argocd-sync-succeeded"
 
 # --- Input Arguments ---
 APP_NAME="${1:-}"
-IMAGE="${2:-}"
-PROJECT="${3:-default}"
-REVISION="${4:-$(git rev-parse HEAD 2>/dev/null || echo 'unknown')}"
 
-if [[ -z "$APP_NAME" || -z "$IMAGE" ]]; then
-  echo "❌ Usage: $0 <app-name> <image> [project] [revision]"
+if [[ -z "$APP_NAME" ]]; then
+  echo "❌ Usage: $0 <app-name>"
   exit 1
 fi
 
@@ -29,21 +26,18 @@ if [[ -z "$GITHUB_TOKEN" ]]; then
 fi
 
 # --- Prepare Payload ---
-read -r -d '' PAYLOAD <<EOF
+PAYLOAD=$(cat <<EOF
 {
   "event_type": "$EVENT_TYPE",
   "client_payload": {
-    "app": "$APP_NAME",
-    "project": "$PROJECT",
-    "revision": "$REVISION",
-    "images": ["$IMAGE"]
+    "app": "$APP_NAME"
   }
 }
 EOF
+)
 
 # --- Send Dispatch Event ---
-echo "🚀 Triggering promotion workflow for app: $APP_NAME"
-echo "📦 Image: $IMAGE"
+echo "🚀 Triggering test ArgoCD sync event for app: $APP_NAME"
 echo "📦 Repository: $GITHUB_OWNER/$GITHUB_REPO"
 echo "📤 Sending repository_dispatch event..."
 echo "$PAYLOAD" | jq .
@@ -55,9 +49,9 @@ RESPONSE=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
   -d "$PAYLOAD")
 
 if [[ "$RESPONSE" == "204" ]]; then
-  echo "✅ Promotion workflow triggered successfully!"
+  echo "✅ Test ArgoCD sync event triggered successfully!"
 else
-  echo "❌ Failed to trigger workflow. HTTP status: $RESPONSE"
+  echo "❌ Failed to trigger event. HTTP status: $RESPONSE"
   echo "Response:"
   cat /tmp/resp.json
   exit 1

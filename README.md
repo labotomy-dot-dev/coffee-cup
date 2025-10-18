@@ -607,6 +607,14 @@ flowchart TD
     P3 -->|Succeed| P8
 ```
 
+### Promotion excercise
+
+Use script to trigger promotion by acting instead of Argcd:
+
+```bash
+./scripts/trigger-promote.sh coffee-cup-dev
+```
+
 ### Rollback excercise
 
 For example you can use this script to trigger the rollback workflow like this:
