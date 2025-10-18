@@ -120,21 +120,39 @@ jobs:
       - name: Promote dev image to prod
         if: env.PROMOTE == 'true'
         run: |
-          echo "Promoting $DEV_IMAGE -> $PROD_IMAGE"
-          docker pull "$DEV_IMAGE"
-          docker tag "$DEV_IMAGE" "$PROD_IMAGE"
-          docker image ls
-          docker push "$PROD_IMAGE"
-
-          echo "Updating production manifest to use promoted image..."
           APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
+
+          # Paths
+          DEV_MANIFEST="products/$APP_BASE/deploy/dev/deploy.yaml"
           PROD_MANIFEST="products/$APP_BASE/deploy/prod/deploy.yaml"
 
-          echo "Updating manifests for $APP_BASE..."
-          git pull origin main
-          echo "Updating production manifest..."
+          # Extract dev image
+          DEV_IMAGE=$(yq e -r '.spec.template.spec.containers[0].image' "$DEV_MANIFEST")
+          echo "DEV_IMAGE=$DEV_IMAGE"
+
+          # Compute corresponding prod image
+          PROD_IMAGE="${DEV_IMAGE/:dev-/prod-}"
+          echo "PROD_IMAGE=$PROD_IMAGE"
+
+          echo "Promoting $DEV_IMAGE -> $PROD_IMAGE"
+
+          # Push to registry
+          docker pull "$DEV_IMAGE"
+          docker tag "$DEV_IMAGE" "$PROD_IMAGE"
+          docker push "$PROD_IMAGE"
+          docker image ls
+
+          # Update prod manifest
+          if [ ! -f "$PROD_MANIFEST" ]; then
+            echo "❌ Prod manifest not found at $PROD_MANIFEST"
+            exit 1
+          fi
+
+          echo "Updating production manifest to use promoted image..."
           yq e -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST"
 
+          # Commit and push changes
+          git pull origin main
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add "$PROD_MANIFEST"
