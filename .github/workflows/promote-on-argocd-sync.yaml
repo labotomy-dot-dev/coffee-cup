@@ -60,23 +60,28 @@ jobs:
       - name: Extract first dev image
         id: extract-image
         run: |
-          IMAGES='${{ toJson(github.event.client_payload.images) }}'
+          # Expand the event payload correctly (no single quotes!)
+          IMAGES=${{ toJson(github.event.client_payload.images) }}
+          echo "IMAGES: $IMAGES"
+
           FIRST_IMAGE=$(echo "$IMAGES" | jq -r '.[0]')
           echo "FIRST_IMAGE=$FIRST_IMAGE" >> $GITHUB_ENV
+
       - name: Check if dev image differs from prod
         id: check-image
         run: |
+          # Read from env (passed from previous step)
+          echo "DEV_IMAGE=$FIRST_IMAGE"
+
           # Read current prod image from manifest
           PROD_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' products/coffee-cup/deploy/prod/deploy.yaml)
-
-          echo "DEV_IMAGE=$FIRST_IMAGE"
           echo "PROD_IMAGE=$PROD_IMAGE"
 
-          # Extract tags (after last ':')
+          # Extract tags
           DEV_TAG="${FIRST_IMAGE##*:}"
           PROD_TAG="${PROD_IMAGE##*:}"
 
-          # Extract only the numeric version part (strip prefix like dev- or prod-)
+          # Extract numeric version only (remove dev-/prod- prefix)
           DEV_VERSION="${DEV_TAG#*-}"
           PROD_VERSION="${PROD_TAG#*-}"
 
@@ -92,7 +97,6 @@ jobs:
             echo "New dev version detected ($DEV_VERSION vs $PROD_VERSION). Promotion needed."
             echo "PROMOTE=true" >> $GITHUB_ENV
           fi
-
       - name: Install jq and yq
         if: env.PROMOTE == 'true'
         run: |
@@ -145,7 +149,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add "$PROD_MANIFEST_PATH/deploy.yaml"
-          git commit -m "Promote $APP_BASE to prod [skip ci]" || echo "No changes to commit"
+          git commit -m "Promote $APP_BASE to prod [skip ci]. " || echo "No changes to commit"
           git push
 
       - name: Run production smoke test
