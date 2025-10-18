@@ -61,6 +61,7 @@ jobs:
         id: extract-image
         run: |
           # Expand the event payload correctly (no single quotes!)
+          echo "client payload raw: ${{ toJson(github.event.client_payload) }}"
           IMAGES=${{ toJson(github.event.client_payload.images) }}
           echo "IMAGES: $IMAGES"
 
