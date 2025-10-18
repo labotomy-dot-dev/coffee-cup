@@ -131,7 +131,7 @@ jobs:
           echo "DEV_IMAGE=$DEV_IMAGE"
 
           # Compute corresponding prod image
-          PROD_IMAGE="${DEV_IMAGE/:dev-/prod-}"
+          PROD_IMAGE="${DEV_IMAGE/:dev-/:prod-}"
           echo "PROD_IMAGE=$PROD_IMAGE"
 
           echo "Promoting $DEV_IMAGE -> $PROD_IMAGE"
