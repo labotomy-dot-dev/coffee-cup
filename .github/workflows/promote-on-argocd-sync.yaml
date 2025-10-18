@@ -57,32 +57,38 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract first dev image
-        id: extract-image
+      - name: Install yq
         run: |
-          # Expand the event payload correctly (no single quotes!)
-          echo "client payload raw: ${{ toJson(github.event.client_payload) }}"
-          IMAGES=${{ toJson(github.event.client_payload.images) }}
-          echo "IMAGES: $IMAGES"
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
 
-          FIRST_IMAGE=$(echo "$IMAGES" | jq -r '.[0]')
-          echo "FIRST_IMAGE=$FIRST_IMAGE" >> $GITHUB_ENV
-
-      - name: Check if dev image differs from prod
-        id: check-image
+      - name: Extract dev image from manifest
+        id: extract-dev-image
         run: |
-          # Read from env (passed from previous step)
-          echo "DEV_IMAGE=$FIRST_IMAGE"
+          APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
+          DEV_MANIFEST="products/$APP_BASE/deploy/dev/deploy.yaml"
 
-          # Read current prod image from manifest
-          PROD_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' products/coffee-cup/deploy/prod/deploy.yaml)
+          if [ ! -f "$DEV_MANIFEST" ]; then
+            echo "❌ Dev manifest not found at $DEV_MANIFEST"
+            exit 1
+          fi
+
+          DEV_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' "$DEV_MANIFEST")
+          echo "DEV_IMAGE=$DEV_IMAGE"
+
+          # Compute prod image by replacing dev- with prod- in tag
+          PROD_IMAGE="${DEV_IMAGE/:dev-/:prod-}"
           echo "PROD_IMAGE=$PROD_IMAGE"
 
-          # Extract tags
-          DEV_TAG="${FIRST_IMAGE##*:}"
+          echo "DEV_IMAGE=$DEV_IMAGE" >> $GITHUB_ENV
+          echo "PROD_IMAGE=$PROD_IMAGE" >> $GITHUB_ENV
+
+      - name: Check if promotion is needed
+        run: |
+          DEV_TAG="${DEV_IMAGE##*:}"
           PROD_TAG="${PROD_IMAGE##*:}"
 
-          # Extract numeric version only (remove dev-/prod- prefix)
           DEV_VERSION="${DEV_TAG#*-}"
           PROD_VERSION="${PROD_TAG#*-}"
 
@@ -98,13 +104,6 @@ jobs:
             echo "New dev version detected ($DEV_VERSION vs $PROD_VERSION). Promotion needed."
             echo "PROMOTE=true" >> $GITHUB_ENV
           fi
-      - name: Install jq and yq
-        if: env.PROMOTE == 'true'
-        run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          sudo wget -qO /usr/local/bin/yq \
-            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
 
       - name: Log in to GitHub Container Registry
         if: env.PROMOTE == 'true'
@@ -114,50 +113,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Promote the app to production
+      - name: Promote dev image to prod
         if: env.PROMOTE == 'true'
-        shell: bash
-        env:
-          APP_BASE: ${{ needs.test-in-cluster.outputs.app_base }}
         run: |
-          echo "Promoting normalized app: $APP_BASE"
-
-          DEV_MANIFEST_PATH="products/$APP_BASE/deploy/dev"
-          PROD_MANIFEST_PATH="products/$APP_BASE/deploy/prod"
-
-          echo "Using paths:"
-          echo "  Dev:  $DEV_MANIFEST_PATH"
-          echo "  Prod: $PROD_MANIFEST_PATH"
-
-          if [ ! -f "$DEV_MANIFEST_PATH/deploy.yaml" ]; then
-            echo "❌ Dev manifest not found at $DEV_MANIFEST_PATH/deploy.yaml"
-            exit 1
-          fi
-
-          DEV_IMAGE=$(yq '.spec.template.spec.containers[0].image' "$DEV_MANIFEST_PATH/deploy.yaml")
-          PROD_IMAGE=$(echo "$DEV_IMAGE" | sed 's/dev-/prod-/')
-
-          echo "Promoting image: $DEV_IMAGE -> $PROD_IMAGE"
-
+          echo "Promoting $DEV_IMAGE -> $PROD_IMAGE"
           docker pull "$DEV_IMAGE"
           docker tag "$DEV_IMAGE" "$PROD_IMAGE"
           docker push "$PROD_IMAGE"
 
+          APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
+          PROD_MANIFEST="products/$APP_BASE/deploy/prod/deploy.yaml"
+
           echo "Updating production manifest..."
-          git pull origin main
-          yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST_PATH/deploy.yaml"
+          yq -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST"
 
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add "$PROD_MANIFEST_PATH/deploy.yaml"
-          git commit -m "Promote $APP_BASE to prod [skip ci]. " || echo "No changes to commit"
+          git add "$PROD_MANIFEST"
+          git commit -m "Promote $APP_BASE to prod [skip ci]" || echo "No changes to commit"
           git push
 
-      - name: Run production smoke test
-        shell: bash
-        env:
-          APP_BASE: ${{ needs.test-in-cluster.outputs.app_base }}
-        run: |
-          echo "Running smoke test for $APP_BASE..."
-          # curl -f "https://prod.example.com/$APP_BASE/health" || exit 1
-          echo "✅ Smoke test passed!"
+      # - name: Run production smoke test
+      #   if: env.PROMOTE == 'true'
+      #   run: |
+      #     APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
+      #     echo "Running smoke test for $APP_BASE..."
+      #     # curl -f "https://prod.example.com/$APP_BASE/health" || exit 1
+      #     echo "✅ Smoke test passed!"
