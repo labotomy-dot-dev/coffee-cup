@@ -47,14 +47,14 @@ jobs:
         run: |
           echo "Rolling back app: $APP_BASE"
 
-          DEV_MANIFEST_PATH="products/$APP_BASE/deploy/dev"
-          if [ ! -f "$DEV_MANIFEST_PATH/deploy.yaml" ]; then
-            echo "❌ Manifest not found at $DEV_MANIFEST_PATH/deploy.yaml"
+          PROD_MANIFEST_PATH="products/$APP_BASE/deploy/prod"
+          if [ ! -f "$PROD_MANIFEST_PATH/deploy.yaml" ]; then
+            echo "❌ Manifest not found at $PROD_MANIFEST_PATH/deploy.yaml"
             exit 1
           fi
 
           echo "Checking git history for last known good image..."
-          PREV_IMAGE=$(git log -n 2 -p -- "$DEV_MANIFEST_PATH/deploy.yaml" \
+          PREV_IMAGE=$(git log -n 2 -p -- "$PROD_MANIFEST_PATH/deploy.yaml" \
             | grep -E '^\+\s*image:' | tail -n 1 | sed 's/.*image: //')
 
           if [ -z "$PREV_IMAGE" ]; then
@@ -65,11 +65,11 @@ jobs:
           echo "Found previous image: $PREV_IMAGE"
           echo "Reverting manifest to last known good image..."
 
-          yq -i ".spec.template.spec.containers[0].image = \"$PREV_IMAGE\"" "$DEV_MANIFEST_PATH/deploy.yaml"
+          yq -i ".spec.template.spec.containers[0].image = \"$PREV_IMAGE\"" "$PROD_MANIFEST_PATH/deploy.yaml"
 
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add "$DEV_MANIFEST_PATH/deploy.yaml"
+          git add "$PROD_MANIFEST_PATH/deploy.yaml"
           git commit -m "Rollback $APP_BASE to previous working image $PREV_IMAGE [skip ci]" || echo "No changes"
           git push
 
