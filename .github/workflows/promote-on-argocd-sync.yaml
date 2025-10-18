@@ -3,7 +3,6 @@ name: Test and Promote After ArgoCD Sync
 on:
   repository_dispatch:
     types: [argocd-sync-succeeded]
-  workflow_dispatch:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -126,6 +125,7 @@ jobs:
           docker tag "$DEV_IMAGE" "$PROD_IMAGE"
           docker push "$PROD_IMAGE"
 
+          echo "Updating production manifest to use promoted image..."
           APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
           PROD_MANIFEST="products/$APP_BASE/deploy/prod/deploy.yaml"
 
