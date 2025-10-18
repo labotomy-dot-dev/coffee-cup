@@ -22,6 +22,7 @@
     - [Example GitHub Workflow Triggered](#example-github-workflow-triggered)
   - [Troubleshooting notification controller](#troubleshooting-notification-controller)
 - [coffee-cup app deploy/test/rollback scenarios](#coffee-cup-app-deploytestrollback-scenarios)
+  - [Rollback excercise](#rollback-excercise)
 - [Lab setup](#lab-setup)
 - [TODO](#todo)
 
@@ -604,6 +605,14 @@ flowchart TD
     P1 --> P2 --> P3
     P3 -->|Fail| P4 --> P5 --> P6 --> P7
     P3 -->|Succeed| P8
+```
+
+### Rollback excercise
+
+For example you can use this script to trigger the rollback workflow like this:
+
+```bash
+./scripts/trigger-rollback.sh coffee-cup-prod prod 56dfa8d
 ```
 
 ## Lab setup

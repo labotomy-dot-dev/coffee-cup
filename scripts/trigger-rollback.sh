@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Usage: ./trigger-rollback.sh <app-name> [project] [revision]
-# Example: ./trigger-rollback.sh coffee-cup-dev default 123abc
+# Example: ./trigger-rollback.sh coffee-cup-dev prod 56dfa8d
 
 # --- Configuration ---
 GITHUB_OWNER="labotomy-dot-dev"          # e.g. my-org
@@ -25,8 +25,9 @@ if [[ -z "$GITHUB_TOKEN" ]]; then
   exit 1
 fi
 
+echo "🔍 Preparing to trigger rollback for app: $APP_NAME in project: $PROJECT at revision: $REVISION"
 # --- Prepare Payload ---
-read -r -d '' PAYLOAD <<EOF
+PAYLOAD=$(cat <<EOF
 {
   "event_type": "$EVENT_TYPE",
   "client_payload": {
@@ -36,6 +37,7 @@ read -r -d '' PAYLOAD <<EOF
   }
 }
 EOF
+)
 
 # --- Send Dispatch Event ---
 echo "📤 Triggering rollback for app: $APP_NAME"
