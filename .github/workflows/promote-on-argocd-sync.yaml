@@ -123,6 +123,7 @@ jobs:
           echo "Promoting $DEV_IMAGE -> $PROD_IMAGE"
           docker pull "$DEV_IMAGE"
           docker tag "$DEV_IMAGE" "$PROD_IMAGE"
+          docker image ls
           docker push "$PROD_IMAGE"
 
           echo "Updating production manifest to use promoted image..."
