@@ -129,7 +129,7 @@ jobs:
           APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
           PROD_MANIFEST="products/$APP_BASE/deploy/prod/deploy.yaml"
 
-          echo "Updating manifests for $APP..."
+          echo "Updating manifests for $APP_BASE..."
           git pull origin main
           echo "Updating production manifest..."
           yq e -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST"
