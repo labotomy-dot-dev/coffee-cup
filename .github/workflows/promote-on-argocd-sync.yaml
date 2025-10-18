@@ -132,7 +132,7 @@ jobs:
           echo "Updating manifests for $APP..."
           git pull origin main
           echo "Updating production manifest..."
-          yq -i -y ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST"
+          yq e -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST"
 
           git config user.name "github-actions"
           git config user.email "actions@github.com"
