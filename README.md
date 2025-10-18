@@ -21,6 +21,7 @@
     - [Example Notification setup](#example-notification-setup)
     - [Example GitHub Workflow Triggered](#example-github-workflow-triggered)
   - [Troubleshooting notification controller](#troubleshooting-notification-controller)
+- [coffee-cup app deploy/test/rollback scenarios](#coffee-cup-app-deploytestrollback-scenarios)
 - [Lab setup](#lab-setup)
 - [TODO](#todo)
 
@@ -493,18 +494,22 @@ What fields are available to send notifications? Run this:
 kubectl -n argocd get application coffee-cup-dev -o yaml
 ```
 
-Everything you see in that YAML is accessible in the template under `.app.<field path>`.
+Everything you see in that YAML is accessible in the template under `.app.<field path>`. ArgoCD notification
+controller uses [expr](https://github.com/expr-lang/expr) to evaluate rules in triggers. Here's the
+language [definition](https://expr-lang.org/docs/language-definition). More about how triggers work
+you can find in [Triggers](https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/triggers/).
 
-If you want to experiment with template syntax safely, you can use the Argo CD CLI with local rendering:
+If you want to experiment with template syntax safely, use the Argo CD CLI to turn Application manifest
+into json first and use `jq` to check for available fields.
 
 ```bash
 argocd login argocd.labotomy.dev --grpc-we
 argocd app get coffee-cup-dev -o json > tmp/coffee-cup-dev.json
 argocd app get coffee-cup-prod -o json > tmp/coffee-cup-prod.json
 # now you can check for fields
-jq -r '.status.operationState.phase' tmp/coffee-cup-dev.json\n
-jq -r '.status.summary.images[0]' tmp/coffee-cup-dev.json\n
-jq -r '.metadata.name' tmp/coffee-cup-dev.json\n
+jq -r '.status.operationState.phase' tmp/coffee-cup-dev.json
+jq -r '.status.summary.images[0]' tmp/coffee-cup-dev.json
+jq -r '.metadata.name' tmp/coffee-cup-dev.json
 ```
 
 Here's the mapping you want to use in triggers & templates
@@ -529,6 +534,77 @@ kubectl -n argocd exec -it job/debug-notifications -- bash
 ```
 
 You may want to try using [gomplate](https://github.com/hairyhenderson/gomplate) as well.
+
+## coffee-cup app deploy/test/rollback scenarios
+
+More or less this is the target workflow:
+
+```text
+dev -> 24
+ build version 24:
+  manifests render set version 24
+  argocd sync and sends synced status back to test & promote
+ test fail version 24:
+  fine but do not promote to prod, inform devs, fix it
+  build fix version 25 for example
+  manifests render set version 25
+  go to test succeed scenario
+ test succeed:
+  promote to prod:
+   retag container image to 25
+   manifests render set version 25
+   
+prod -> 25
+ test fail (smoke):
+  argocd sends notification to rollback workflow
+  rollback to previous version 24 in manifests
+  disable argocd sync
+  notification to devs/sres to troubleshoot & fix
+ test succeed:
+  notification & celebration
+```
+
+```mermaid
+flowchart TD
+
+    subgraph DEV["Dev Environment"]
+        D1[Build v24]
+        D2[Render manifests with version 24]
+        D3[ArgoCD sync Coffee Cup Dev]
+        D4[ArgoCD sends 'synced' status -> Test]
+    end
+
+    subgraph TEST["Test Environment"]
+        T1[Test starts on v24]
+        T2{Test result?}
+        T3[Fail: Notify Devs - do not promote]
+        T4[Build fix v25]
+        T5[Render manifests with version 25]
+        T6[Test succeed]
+        T7[Promote to Prod]
+        T8[Retag container to v25]
+        T9[Render manifests with version 25]
+    end
+
+    subgraph PROD["Prod Environment"]
+        P1[Deploy v25 via ArgoCD sync]
+        P2[Test - smoke check]
+        P3{Prod test result?}
+        P4[Fail: ArgoCD sends rollback trigger]
+        P5[Rollback manifests to v24]
+        P6[Disable ArgoCD sync]
+        P7[Notify Devs/SREs to investigate]
+        P8[Succeed: Send notification & celebrate 🎉]
+    end
+
+    D1 --> D2 --> D3 --> D4 --> T1
+    T1 --> T2
+    T2 -->|Fail| T3 --> T4 --> T5 --> T1
+    T2 -->|Succeed| T6 --> T7 --> T8 --> T9 --> P1
+    P1 --> P2 --> P3
+    P3 -->|Fail| P4 --> P5 --> P6 --> P7
+    P3 -->|Succeed| P8
+```
 
 ## Lab setup
 

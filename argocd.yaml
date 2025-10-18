@@ -133,23 +133,30 @@ notifications:
   triggers:
     trigger.on-sync-succeeded: |
       - description: Application has finished deploying dev image
+        oncePer: app.status.sync.revision
         send:
           - github-app-sync-succeeded
         when: |
+          app.metadata.name == 'coffee-cup-dev' &&
           app.status.operationState.phase in ['Succeeded'] &&
-          app.status.summary.images[0] != ""
-
+          app.status.health.status == 'Healthy'
     trigger.on-sync-failed: |
       - description: Application syncing has failed
+        oncePer: app.status.sync.revision
         send:
           - github-app-sync-failed
-        when: app.status.operationState.phase in ['Error', 'Failed']
+        when: |
+          app.metadata.name == 'coffee-cup-dev' &&
+          app.status.operationState.phase in ['Succeeded'] &&
+          app.status.health.status != 'Healthy'
+        when: |
+          app.status.operationState.phase in ['Error', 'Failed']
 
-    trigger.on-resource-degraded: |
-      - description: Any resource is degraded (pod failed)
-        send:
-          - github-app-sync-failed
-        when: app.status.health.status != 'Healthy'
+    # trigger.on-resource-degraded: |
+    #   - description: Any resource is degraded (pod failed)
+    #     send:
+    #       - github-app-sync-failed
+    #     when: app.status.health.status != 'Healthy'
     # trigger.on-resource-degraded: |
     #   - description: A resource in the app has degraded
     #     send:
