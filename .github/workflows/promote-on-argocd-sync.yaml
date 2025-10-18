@@ -3,7 +3,7 @@ name: Test and Promote After ArgoCD Sync
 on:
   repository_dispatch:
     types: [argocd-sync-succeeded]
-
+  workflow_dispatch:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -63,22 +63,27 @@ jobs:
             https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
-      - name: Extract dev image from manifest
-        id: extract-dev-image
+      - name: Extract dev and prod images from manifests
+        id: extract-images
         run: |
           APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
           DEV_MANIFEST="products/$APP_BASE/deploy/dev/deploy.yaml"
+          PROD_MANIFEST="products/$APP_BASE/deploy/prod/deploy.yaml"
 
           if [ ! -f "$DEV_MANIFEST" ]; then
             echo "❌ Dev manifest not found at $DEV_MANIFEST"
             exit 1
           fi
 
-          DEV_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' "$DEV_MANIFEST")
-          echo "DEV_IMAGE=$DEV_IMAGE"
+          if [ ! -f "$PROD_MANIFEST" ]; then
+            echo "❌ Prod manifest not found at $PROD_MANIFEST"
+            exit 1
+          fi
 
-          # Compute prod image by replacing dev- with prod- in tag
-          PROD_IMAGE="${DEV_IMAGE/:dev-/:prod-}"
+          DEV_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' "$DEV_MANIFEST")
+          PROD_IMAGE=$(yq -r '.spec.template.spec.containers[0].image' "$PROD_MANIFEST")
+
+          echo "DEV_IMAGE=$DEV_IMAGE"
           echo "PROD_IMAGE=$PROD_IMAGE"
 
           echo "DEV_IMAGE=$DEV_IMAGE" >> $GITHUB_ENV
