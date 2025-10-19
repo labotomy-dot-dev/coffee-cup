@@ -14,6 +14,7 @@ jobs:
   payload-print:
     name: Print ArgoCD webhook payload
     runs-on: ubuntu-latest
+    if: ${{ github.event.client_payload.project == 'dev' || github.event.client_payload.project == 'prod' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

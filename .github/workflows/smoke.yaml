@@ -12,6 +12,7 @@ jobs:
   debug:
     name: Print ArgoCD webhook payload
     runs-on: ubuntu-latest
+    if: ${{ github.event.client_payload.project == 'prod' }}
     steps:
       - name: Print payload
         run: |
