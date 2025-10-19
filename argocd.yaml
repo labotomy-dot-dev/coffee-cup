@@ -139,7 +139,6 @@ notifications:
         send:
           - github-app-sync-succeeded
         when: |
-          app.metadata.name == 'coffee-cup-dev' &&
           app.status.operationState.phase in ['Succeeded'] &&
           app.status.health.status == 'Healthy'
     trigger.on-sync-failed: |
@@ -148,11 +147,11 @@ notifications:
         send:
           - github-app-sync-failed
         when: |
-          app.metadata.name == 'coffee-cup-dev' &&
           app.status.operationState.phase in ['Succeeded'] &&
           app.status.health.status != 'Healthy'
         when: |
           app.status.operationState.phase in ['Error', 'Failed']
+  # 3. Define templates
   templates:
     template.github-app-sync-failed: |
       webhook:

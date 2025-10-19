@@ -18,8 +18,8 @@ jobs:
           echo "Event type: ${{ github.event.action || github.event_name }}"
           echo "Payload: ${{ toJson(github.event.client_payload) }}"
   test-in-cluster:
-    # ✅ Run only if app name from ArgoCD payload ends with "-dev"
-    if: endsWith(github.event.client_payload.app, '-dev')
+    # ✅ Only trigger for ArgoCD apps belonging to the dev project
+    if: ${{ github.event.client_payload.project == 'dev' }}
     runs-on: ubuntu-latest
     outputs:
       app_base: ${{ steps.normalize.outputs.app_base }}

@@ -19,8 +19,8 @@ jobs:
           echo "Payload: ${{ toJson(github.event.client_payload) }}"
   smoke_tests:
     name: Run production smoke tests
-    # ✅ Only run when ArgoCD reports a *-prod app
-    if: endsWith(github.event.client_payload.app, '-prod')
+    # ✅ Only trigger for ArgoCD apps belonging to the prod project
+    if: ${{ github.event.client_payload.project == 'prod' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

@@ -23,6 +23,8 @@ jobs:
     permissions:
       contents: write
       packages: write
+    # ✅ Only trigger for ArgoCD apps belonging to the prod project
+    if: ${{ github.event.client_payload.project == 'prod' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
