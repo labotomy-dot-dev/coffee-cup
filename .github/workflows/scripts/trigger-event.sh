@@ -2,21 +2,24 @@
 set -euo pipefail
 
 # Usage:
-#   ./trigger-promote.sh <app-name>
-# Example:
-#   ./trigger-promote.sh coffee-cup-dev
+#   ./trigger-event.sh <app-name> [project-name] [event-type]
+# Examples:
+#   ./trigger-event.sh coffee-cup-dev dev
+#   ./trigger-event.sh coffee-cup-prod prod argocd-sync-failed
 
 # --- Configuration ---
 GITHUB_OWNER="labotomy-dot-dev"
 GITHUB_REPO="coffee-cup"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-EVENT_TYPE="argocd-sync-succeeded"
 
 # --- Input Arguments ---
 APP_NAME="${1:-}"
+PROJECT_NAME="${2:-dev}"
+EVENT_TYPE="${3:-argocd-sync-succeeded}"
 
+# --- Validations ---
 if [[ -z "$APP_NAME" ]]; then
-  echo "❌ Usage: $0 <app-name>"
+  echo "❌ Usage: $0 <app-name> [project-name] [event-type]"
   exit 1
 fi
 
@@ -30,16 +33,19 @@ PAYLOAD=$(cat <<EOF
 {
   "event_type": "$EVENT_TYPE",
   "client_payload": {
-    "app": "$APP_NAME"
+    "app": "$APP_NAME",
+    "project": "$PROJECT_NAME"
   }
 }
 EOF
 )
 
 # --- Send Dispatch Event ---
-echo "🚀 Triggering test ArgoCD sync event for app: $APP_NAME"
+echo "🚀 Triggering GitHub event..."
 echo "📦 Repository: $GITHUB_OWNER/$GITHUB_REPO"
-echo "📤 Sending repository_dispatch event..."
+echo "📤 Event type: $EVENT_TYPE"
+echo "📱 App: $APP_NAME"
+echo "🧱 Project: $PROJECT_NAME"
 echo "$PAYLOAD" | jq .
 
 RESPONSE=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
@@ -49,7 +55,7 @@ RESPONSE=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
   -d "$PAYLOAD")
 
 if [[ "$RESPONSE" == "204" ]]; then
-  echo "✅ Test ArgoCD sync event triggered successfully!"
+  echo "✅ Event '$EVENT_TYPE' triggered successfully for app '$APP_NAME' (project: $PROJECT_NAME)!"
 else
   echo "❌ Failed to trigger event. HTTP status: $RESPONSE"
   echo "Response:"
