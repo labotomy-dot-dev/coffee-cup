@@ -41,3 +41,18 @@ jobs:
           # Example:
           # curl -f "https://prod.example.com/$APP_BASE/health" || exit 1
           echo "✅ Smoke test passed!"
+  rollback-on-failure:
+    name: Rollback on failure
+    runs-on: ubuntu-latest
+    needs: smoke_tests
+    if: failure()
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Rollback to previous image version
+        shell: bash
+        run: ./github/workflows/scripts/rollback.sh

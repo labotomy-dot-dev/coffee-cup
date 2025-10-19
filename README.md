@@ -677,3 +677,7 @@ Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
 - [ ] Configure [Resource tracking](https://argo-cd.readthedocs.io/en/stable/user-guide/resource_tracking/)
 - [ ] Configure [Namespace based configuration for notifications](https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/#namespace-based-configuration)
   - [ ] Configure Github workflow to react on notifications per app
+- [ ] Configure tracing for easier troubleshooting
+- [ ] Add notifications to Slack channel(s)
+- [ ] Use Github environments
+- [ ] Find a way if possible to test inside the cluster using a job instead of using Github workflow
