@@ -56,3 +56,11 @@ jobs:
       - name: Rollback to previous image version
         shell: bash
         run: ./github/workflows/scripts/rollback.sh
+
+      # - name: Notify failure in logs
+      #   run: |
+      #     echo "📣 Notify team: ArgoCD sync failed for app ${{ github.event.client_payload.app }}"
+      #     # Example integration:
+      #     # curl -X POST -H 'Content-type: application/json' \
+      #     #   --data '{"text":"ArgoCD sync failed for app ${{ github.event.client_payload.app }}. Rollback triggered."}' \
+      #     #   ${{ secrets.SLACK_WEBHOOK_URL }}

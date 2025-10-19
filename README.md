@@ -22,6 +22,7 @@
     - [Example GitHub Workflow Triggered](#example-github-workflow-triggered)
   - [Troubleshooting notification controller](#troubleshooting-notification-controller)
 - [coffee-cup app deploy/test/rollback scenarios](#coffee-cup-app-deploytestrollback-scenarios)
+  - [Promotion excercise](#promotion-excercise)
   - [Rollback excercise](#rollback-excercise)
 - [Lab setup](#lab-setup)
 - [TODO](#todo)
@@ -620,18 +621,20 @@ flowchart TD
 
 ### Promotion excercise
 
-Use script to trigger promotion by acting instead of Argcd:
+Use script to trigger promotion by acting to simulate ArgoCD behaviour:
 
 ```bash
-./.github/workflows/scripts/trigger-event.sh coffee-cup-prod dev argicd-sync-succeeded
+./.github/workflows/scripts/trigger-event.sh coffee-cup-prod dev argocd-sync-succeeded
 ```
 
 ### Rollback excercise
 
-For example you can use this script to trigger the rollback workflow like this:
+We do the rollback only for prod apps. In dev you want to troubleshoot & figure out what went wrong.
+To trigger workflow execute the script and provide arguments for the app name, project and `argocd-sync-failed`
+event.
 
 ```bash
-./.github/workflows/scripts/trigger-event.sh coffee-cup-prod prod argicd-sync-succeeded
+./.github/workflows/scripts/trigger-event.sh coffee-cup-prod prod argocd-sync-failed
 ```
 
 ## Lab setup
