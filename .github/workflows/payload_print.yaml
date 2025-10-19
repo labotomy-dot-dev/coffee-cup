@@ -1,0 +1,24 @@
+name: Print payload for troubleshooting
+
+on:
+  repository_dispatch:
+    types:
+      - argocd-sync-failed
+      - argocd-sync-succeeded
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  payload-print:
+    name: Print ArgoCD webhook payload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Print payload
+        run: |
+          echo "Event type: ${{ github.event.action || github.event_name }}"
+          echo "Payload: ${{ toJson(github.event.client_payload) }}"
