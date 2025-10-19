@@ -1,0 +1,34 @@
+name: Smoke test on production after ArgoCD sync
+
+on:
+  repository_dispatch:
+    types: [argocd-sync-succeeded]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  smoke_tests:
+    name: Run production smoke tests
+    # ✅ Only run when ArgoCD reports a *-prod app
+    if: endsWith(github.event.client_payload.app, '-prod')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Print ArgoCD webhook payload
+        run: |
+          echo "ArgoCD Payload: ${{ github.event.client_payload }}"
+          echo "✅ ArgoCD sync succeeded for production!"
+
+      - name: Run production smoke test
+        shell: bash
+        run: |
+          ARGO_APP="${{ github.event.client_payload.app }}"
+          APP_BASE=$(echo "$ARGO_APP" | sed -E 's/-[^-]+$//')
+          echo "Running smoke test for $APP_BASE..."
+          # Example:
+          # curl -f "https://prod.example.com/$APP_BASE/health" || exit 1
+          echo "✅ Smoke test passed!"

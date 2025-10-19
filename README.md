@@ -612,7 +612,7 @@ flowchart TD
 Use script to trigger promotion by acting instead of Argcd:
 
 ```bash
-./scripts/trigger-promote.sh coffee-cup-dev
+./.github/workflows/scripts/trigger-promote.sh coffee-cup-dev
 ```
 
 ### Rollback excercise
@@ -620,7 +620,7 @@ Use script to trigger promotion by acting instead of Argcd:
 For example you can use this script to trigger the rollback workflow like this:
 
 ```bash
-./scripts/trigger-rollback.sh coffee-cup-prod prod 56dfa8d
+./.github/workflows/scripts/trigger-promote.sh coffee-cup-prod prod 56dfa8d
 ```
 
 ## Lab setup
