@@ -4,7 +4,7 @@ set -euo pipefail
 # Usage:
 #   ./trigger-event.sh <app-name> [project-name] [event-type]
 # Examples:
-#   ./trigger-event.sh coffee-cup-dev dev
+#   ./trigger-event.sh coffee-cup-dev dev argocd-sync-succeeded
 #   ./trigger-event.sh coffee-cup-prod prod argocd-sync-failed
 
 # --- Configuration ---
