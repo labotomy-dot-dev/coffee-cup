@@ -14,6 +14,8 @@ configs:
     accounts.platform: login
     accounts.developer: login
     accounts.team_lead: login
+    # -- Timeout to discover if a new manifests version got published to the repository
+    timeout.reconciliation: 60s
 
     # enable exec into pods
     exec.enabled: true

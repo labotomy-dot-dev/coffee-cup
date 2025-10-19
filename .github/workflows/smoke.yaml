@@ -9,6 +9,14 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  debug:
+    name: Print ArgoCD webhook payload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print payload
+        run: |
+          echo "Event type: ${{ github.event.action || github.event_name }}"
+          echo "Payload: ${{ toJson(github.event.client_payload) }}"
   smoke_tests:
     name: Run production smoke tests
     # ✅ Only run when ArgoCD reports a *-prod app
