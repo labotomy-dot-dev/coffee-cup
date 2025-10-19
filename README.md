@@ -383,7 +383,8 @@ notifications:
   secret:
     create: false
   argocdUrl: "https://argocd.labotomy.dev"
-
+  extraArgs:
+    - --loglevel=debug
   # # 1. Define the webhook service
   notifiers:
     service.webhook.github: |
@@ -397,18 +398,26 @@ notifications:
   # 2. Define triggers
   triggers:
     trigger.on-sync-succeeded: |
-      - description: Application syncing has succeeded
+      - description: Application has finished deploying dev image
+        oncePer: app.status.sync.revision
         send:
           - github-app-sync-succeeded
-        when: app.status.operationState.phase in ['Succeeded']
-
+        when: |
+          app.spec.project in ['dev', 'prod'] &&
+          app.status.operationState.phase in ['Succeeded'] &&
+          app.status.health.status == 'Healthy'
     trigger.on-sync-failed: |
       - description: Application syncing has failed
+        oncePer: app.status.sync.revision
         send:
           - github-app-sync-failed
-        when: app.status.operationState.phase in ['Error', 'Failed']
-
-  # 3. Define templates (reference the service by name)
+        when: |
+          app.spec.project in ['dev', 'prod'] &&
+          app.status.operationState.phase in ['Succeeded'] &&
+          app.status.health.status != 'Healthy'
+        when: |
+          app.status.operationState.phase in ['Error', 'Failed']
+  # 3. Define templates
   templates:
     template.github-app-sync-failed: |
       webhook:
@@ -424,7 +433,8 @@ notifications:
               "client_payload": {
                 "app": "{{.app.metadata.name}}",
                 "project": "{{.app.spec.project}}",
-                "revision": "{{.app.status.sync.revision}}"
+                "revision": "{{.app.status.sync.revision}}",
+                "images": {{ toJson .app.status.images }}
               }
             }
     template.github-app-sync-succeeded: |
@@ -441,13 +451,14 @@ notifications:
               "client_payload": {
                 "app": "{{.app.metadata.name}}",
                 "project": "{{.app.spec.project}}",
-                "revision": "{{.app.status.sync.revision}}"
+                "revision": "{{.app.status.sync.revision}}",
+                "images": {{ toJson .app.status.summary.images }}
               }
             }
   # 4. Define subscriptions
   subscriptions:
     - recipients:
-      - github
+        - github
       triggers:
         - on-sync-succeeded
         - on-sync-failed

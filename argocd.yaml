@@ -117,12 +117,6 @@ notifications:
     - --loglevel=debug
   # # 1. Define the webhook service
   notifiers:
-    # service.webhook.github: |
-    #   url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
-    #   method: POST
-    #   headers:
-    #     Authorization: Bearer $GITHUB_TOKEN
-    #     Accept: application/vnd.github+json
     service.webhook.github: |
       url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
       method: POST
