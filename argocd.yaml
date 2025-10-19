@@ -139,6 +139,7 @@ notifications:
         send:
           - github-app-sync-succeeded
         when: |
+          app.spec.project in ['dev', 'prod'] &&
           app.status.operationState.phase in ['Succeeded'] &&
           app.status.health.status == 'Healthy'
     trigger.on-sync-failed: |
@@ -147,6 +148,7 @@ notifications:
         send:
           - github-app-sync-failed
         when: |
+          app.spec.project in ['dev', 'prod'] &&
           app.status.operationState.phase in ['Succeeded'] &&
           app.status.health.status != 'Healthy'
         when: |
