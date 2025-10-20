@@ -129,7 +129,7 @@ notifications:
   triggers:
     trigger.on-dev-deployed: |
       - description: Application has finished deploying dev image
-        oncePer: app.status.sync.revision
+        oncePer: app.status.operationState.syncResult.revision
         send:
           - on-dev-deployed
         when: |
@@ -138,7 +138,7 @@ notifications:
           app.status.health.status == 'Healthy'
     trigger.on-prod-deployed: |
       - description: Application has finished deploying prod image
-        oncePer: app.status.sync.revision
+        oncePer: app.status.operationState.syncResult.revision
         send:
           - on-prod-deployed
         when: |
@@ -147,7 +147,7 @@ notifications:
           app.status.health.status == 'Healthy'
     trigger.on-prod-failed: |
       - description: Application syncing has failed
-        oncePer: app.status.sync.revision
+        oncePer: app.status.operationState.syncResult.revision
         send:
           - on-prod-failed
         when: |

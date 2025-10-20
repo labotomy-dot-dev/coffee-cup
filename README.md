@@ -381,13 +381,17 @@ If you want to experiment with template syntax safely, use the Argo CD CLI to tu
 into json first and use `jq` to check for available fields.
 
 ```bash
-argocd login argocd.labotomy.dev --grpc-we
+argocd login argocd.labotomy.dev --grpc-web
 argocd app get coffee-cup-dev -o json > tmp/coffee-cup-dev.json
 argocd app get coffee-cup-prod -o json > tmp/coffee-cup-prod.json
+argocd app get tea-cup-dev -o json > tmp/tea-cup-dev.json
+argocd app get tea-cup-prod -o json > tmp/tea-cup-prod.json
 # now you can check for fields
 jq -r '.status.operationState.phase' tmp/coffee-cup-dev.json
 jq -r '.status.summary.images[0]' tmp/coffee-cup-dev.json
 jq -r '.metadata.name' tmp/coffee-cup-dev.json
+jq -r '.status.operationState.syncResult.revision' tmp/coffee-cup-dev.json
+jq -r '.status.operationState.syncResult.revision' tmp/tea-cup-dev.json
 ```
 
 Here's the mapping you want to use in triggers & templates
