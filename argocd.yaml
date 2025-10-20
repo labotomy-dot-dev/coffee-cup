@@ -127,29 +127,38 @@ notifications:
           value: application/vnd.github+json
   # 2. Define triggers
   triggers:
-    trigger.on-sync-succeeded: |
+    trigger.on-dev-deployed: |
       - description: Application has finished deploying dev image
         oncePer: app.status.sync.revision
         send:
-          - github-app-sync-succeeded
+          - on-dev-deployed
         when: |
-          app.spec.project in ['dev', 'prod'] &&
+          app.spec.project == 'dev' &&
           app.status.operationState.phase in ['Succeeded'] &&
           app.status.health.status == 'Healthy'
-    trigger.on-sync-failed: |
+    trigger.on-prod-deployed: |
+      - description: Application has finished deploying prod image
+        oncePer: app.status.sync.revision
+        send:
+          - on-prod-deployed
+        when: |
+          app.spec.project == 'prod' &&
+          app.status.operationState.phase in ['Succeeded'] &&
+          app.status.health.status == 'Healthy'
+    trigger.on-prod-failed: |
       - description: Application syncing has failed
         oncePer: app.status.sync.revision
         send:
-          - github-app-sync-failed
+          - on-prod-failed
         when: |
-          app.spec.project in ['dev', 'prod'] &&
+          app.spec.project == 'prod' &&
           app.status.operationState.phase in ['Succeeded'] &&
           app.status.health.status != 'Healthy'
         when: |
           app.status.operationState.phase in ['Error', 'Failed']
   # 3. Define templates
   templates:
-    template.github-app-sync-failed: |
+    template.on-prod-failed: |
       webhook:
         github:
           method: POST
@@ -159,7 +168,7 @@ notifications:
             Accept: application/vnd.github+json
           body: |
             {
-              "event_type": "argocd-sync-failed",
+              "event_type": "argocd-on-prod-failed",
               "client_payload": {
                 "app": "{{.app.metadata.name}}",
                 "project": "{{.app.spec.project}}",
@@ -167,7 +176,7 @@ notifications:
                 "images": {{ toJson .app.status.images }}
               }
             }
-    template.github-app-sync-succeeded: |
+    template.on-dev-deployed: |
       webhook:
         github:
           method: POST
@@ -177,7 +186,25 @@ notifications:
             Accept: application/vnd.github+json
           body: |
             {
-              "event_type": "argocd-sync-succeeded",
+              "event_type": "argocd-on-dev-deployed",
+              "client_payload": {
+                "app": "{{.app.metadata.name}}",
+                "project": "{{.app.spec.project}}",
+                "revision": "{{.app.status.sync.revision}}",
+                "images": {{ toJson .app.status.summary.images }}
+              }
+            }
+    template.on-prod-deployed: |
+      webhook:
+        github:
+          method: POST
+          url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
+          headers:
+            Authorization: Bearer $github_token
+            Accept: application/vnd.github+json
+          body: |
+            {
+              "event_type": "argocd-on-prod-deployed",
               "client_payload": {
                 "app": "{{.app.metadata.name}}",
                 "project": "{{.app.spec.project}}",
@@ -190,5 +217,6 @@ notifications:
     - recipients:
         - github
       triggers:
-        - on-sync-succeeded
-        - on-sync-failed
+        - on-dev-deployed
+        - on-prod-deployed
+        - on-prod-failed

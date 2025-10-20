@@ -684,3 +684,5 @@ Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
 - [ ] Add notifications to Slack channel(s)
 - [ ] Use Github environments
 - [ ] Find a way if possible to test inside the cluster using a job instead of using Github workflow
+- [ ] Remove TLS for ingress on Argocd
+- [ ] Add ingress definition for apps in products

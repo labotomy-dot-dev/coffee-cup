@@ -2,7 +2,7 @@ name: Rollback After ArgoCD Sync Failure
 
 on:
   repository_dispatch:
-    types: [argocd-sync-failed]
+    types: [argocd-on-prod-failed]
 
 env:
   REGISTRY: ghcr.io

@@ -2,7 +2,7 @@ name: Smoke test on production after ArgoCD sync
 
 on:
   repository_dispatch:
-    types: [argocd-sync-succeeded]
+    types: [argocd-on-prod-deployed]
 
 env:
   REGISTRY: ghcr.io

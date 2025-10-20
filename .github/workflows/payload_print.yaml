@@ -3,8 +3,9 @@ name: Print payload for troubleshooting
 on:
   repository_dispatch:
     types:
-      - argocd-sync-failed
-      - argocd-sync-succeeded
+      - argocd-on-prod-deployed
+      - argocd-on-dev-deployed
+      - argocd-on-prod-failed
 
 env:
   REGISTRY: ghcr.io

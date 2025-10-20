@@ -2,7 +2,7 @@ name: Test and Promote After ArgoCD Sync
 
 on:
   repository_dispatch:
-    types: [argocd-sync-succeeded]
+    types: [argocd-on-dev-deployed]
 
 env:
   REGISTRY: ghcr.io
