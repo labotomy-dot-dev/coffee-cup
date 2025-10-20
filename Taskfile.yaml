@@ -194,3 +194,16 @@ tasks:
     cmds:
       - |
         bitdowntoc --inplace --profile GITHUB README.md --indent-chars="-" --indent-spaces=2
+  ##########################
+  # Application specific tasks
+  ##########################
+  coffee.rollback:
+    desc: rollback coffee-cup app to previous version in prod environment
+    cmds:
+      - |
+        ./.github/workflows/scripts/trigger-event.sh coffee-cup-prod prod argocd-on-prod-failed
+  tea.rollback:
+    desc: rollback tea-cup app to previous version in prod environment
+    cmds:
+      - |
+        ./.github/workflows/scripts/trigger-event.sh tea-cup-prod prod argocd-on-prod-failed
