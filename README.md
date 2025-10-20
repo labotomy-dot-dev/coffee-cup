@@ -323,7 +323,9 @@ flowchart TD
 6. **GitHub Repository Dispatch Event** – Triggers a GitHub Actions workflow in your repository.
 7. **GitHub Workflow Runs** – Executes subsequent steps like tests, promotion, or deployments.
 
-- [Git Webhook Configuration](https://argo-cd.readthedocs.io/en/stable/operator-manual/webhook/)
+Since this is a monorepo we have to apply a special configuration to deduplicate events as explained in [Avoid Sending Same Notification Too Often](https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/triggers/#avoid-sending-same-notification-too-often) check under `Mono Repo Usage` because that's the reason we want to use `app.status.operationState.syncResult.revision`.
+
+For the webhook configuration check [Git Webhook Configuration](https://argo-cd.readthedocs.io/en/stable/ope.rator-manual/webhook/)
 
 ### Rollback Workflow
 
@@ -555,3 +557,5 @@ Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
 - [ ] Find a way if possible to test inside the cluster using a job instead of using Github workflow
 - [ ] Remove TLS for ingress on Argocd
 - [ ] Add ingress definition for apps in products
+- [ ] Add dynamic names for workflows based on argocd payload
+- [ ] Update `trigger-event.sh` script to include additional fields sent from argocd notification
