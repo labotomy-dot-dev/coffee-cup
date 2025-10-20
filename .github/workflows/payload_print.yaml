@@ -1,5 +1,12 @@
 name: Print payload for troubleshooting
 
+# 👇 Dynamic workflow run name appears in the Actions UI
+run-name: |
+  [${{ github.event.client_payload.project || 'unknown' }}] \
+  ${{ github.event.client_payload.app || 'no-app' }} \
+  (rev: ${{ github.event.client_payload.app_revision || 'n/a' }}) \
+  -> ${{ github.event.action || github.event_name }}
+
 on:
   repository_dispatch:
     types:
@@ -15,12 +22,11 @@ jobs:
   payload-print:
     name: Print ArgoCD webhook payload
     runs-on: ubuntu-latest
-    if: ${{ github.event.client_payload.project == 'dev' || github.event.client_payload.project == 'prod' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Print payload
         run: |
-          echo "Event type: ${{ github.event.action || github.event_name }}"
-          echo "Payload: ${{ toJson(github.event.client_payload) }}"
+          echo "Payload:"
+          echo "${{ toJson(github.event.client_payload) }}"
