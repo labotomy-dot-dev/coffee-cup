@@ -12,14 +12,10 @@
 - [Argo CD User Accounts, Roles, Projects, and Permissions](#argo-cd-user-accounts-roles-projects-and-permissions)
 - [Platform and Developer Autonomy](#platform-and-developer-autonomy)
 - [Application onboarding and App of Apps pattern](#application-onboarding-and-app-of-apps-pattern)
-- [Rollback and Notifications Integration](#rollback-and-notifications-integration)
 - [How notifications work?](#how-notifications-work)
   - [Rollback Workflow](#rollback-workflow)
   - [Notifications Overview](#notifications-overview)
     - [Notification Flow](#notification-flow)
-    - [Example Triggers and Templates](#example-triggers-and-templates)
-    - [Example Notification setup](#example-notification-setup)
-    - [Example GitHub Workflow Triggered](#example-github-workflow-triggered)
   - [Troubleshooting notification controller](#troubleshooting-notification-controller)
 - [coffee-cup app deploy/test/rollback scenarios](#coffee-cup-app-deploytestrollback-scenarios)
   - [Promotion excercise](#promotion-excercise)
@@ -303,19 +299,14 @@ spec:
 This ensures **self-service onboarding** for developers while keeping environments safe and controlled
 by admins.
 
-## Rollback and Notifications Integration
-
-The deployment pipeline integrates **Argo CD Notifications** and **automated rollback** to ensure stability
-and traceability throughout the GitOps process.
-
 ## How notifications work?
 
 ```mermaid
 flowchart TD
     A[Application Sync Triggered] --> B{Argo CD Notification Controller}
     B --> C[Evaluate Triggers]
-    C -->|on-sync-succeeded| D[Template: github-app-sync-succeeded]
-    C -->|on-sync-failed| E[Template: github-app-sync-failed]
+    C -->|on-prod-deployed| D[Template: argocd-on-prod-deployed]
+    C -->|on-prod-failed| E[Template: github-on-prod-failed]
     D --> F[Service: webhook.github]
     E --> F
     F --> G[GitHub Repository Dispatch Event]
@@ -326,7 +317,7 @@ flowchart TD
 
 1. **Application Sync Triggered** – A deployment is applied or reconciled in Argo CD.
 2. **Notification Controller** – Monitors the application status.
-3. **Evaluate Triggers** – Checks conditions like `on-sync-succeeded` or `on-sync-failed`.
+3. **Evaluate Triggers** – Checks conditions like `on-prod-deployed` or `on-prod-failed`.
 4. **Templates** – Predefined templates determine the payload and which service to send notifications to.
 5. **Webhook Service** – Sends the notification to GitHub using the configured `service.webhook.github`.
 6. **GitHub Repository Dispatch Event** – Triggers a GitHub Actions workflow in your repository.
@@ -337,10 +328,10 @@ flowchart TD
 ### Rollback Workflow
 
 1. Each Argo CD application uses automated sync with `selfHeal` and `prune` enabled.
-2. If deployment to the `dev` or `prod` environment fails (due to manifest error, image issue, etc.):
+2. If deployment to the `prod` environment fails (due to manifest error, image issue, etc.):
 
    - Argo CD detects the failed sync.
-   - A rollback is triggered automatically to the **last healthy revision**.
+   - A rollback is triggered automatically to the **last healthy version**.
 3. The failed event is reported through the **notifications subsystem** (GitHub webhook or Slack).
 
 ### Notifications Overview
@@ -356,136 +347,10 @@ sequenceDiagram
     participant GitHub
     participant CI
 
-    ArgoCD->>NotificationController: Sync Succeeded / Failed
-    NotificationController->>GitHub: POST /dispatches (event_type: argocd-sync-succeeded/failed)
+    ArgoCD->>NotificationController: Deployment Succeeded / Failed
+    NotificationController->>GitHub: POST /dispatches (event_type: argocd-on-prod-deployed/failed)
     GitHub->>CI: Trigger GitHub Actions workflow
     CI->>ArgoCD: (Optional) Rollback or reapply manifests
-```
-
-#### Example Triggers and Templates
-
-- **Trigger:** `on-sync-succeeded`
-
-  - Fires when app sync succeeds.
-  - Sends `argocd-sync-succeeded` GitHub dispatch event.
-
-- **Trigger:** `on-sync-failed`
-
-  - Fires when sync fails.
-  - Sends `argocd-sync-failed` dispatch event and logs rollback.
-
-#### Example Notification setup
-
-```yaml
-## Notifications controller
-notifications:
-  enabled: true
-  # you'll have to create secret manually
-  secret:
-    create: false
-  argocdUrl: "https://argocd.labotomy.dev"
-  extraArgs:
-    - --loglevel=debug
-  # # 1. Define the webhook service
-  notifiers:
-    service.webhook.github: |
-      url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
-      method: POST
-      headers:
-        - name: Authorization
-          value: Bearer $github_token
-        - name: Accept
-          value: application/vnd.github+json
-  # 2. Define triggers
-  triggers:
-    trigger.on-sync-succeeded: |
-      - description: Application has finished deploying dev image
-        oncePer: app.status.sync.revision
-        send:
-          - github-app-sync-succeeded
-        when: |
-          app.spec.project in ['dev', 'prod'] &&
-          app.status.operationState.phase in ['Succeeded'] &&
-          app.status.health.status == 'Healthy'
-    trigger.on-sync-failed: |
-      - description: Application syncing has failed
-        oncePer: app.status.sync.revision
-        send:
-          - github-app-sync-failed
-        when: |
-          app.spec.project in ['dev', 'prod'] &&
-          app.status.operationState.phase in ['Succeeded'] &&
-          app.status.health.status != 'Healthy'
-        when: |
-          app.status.operationState.phase in ['Error', 'Failed']
-  # 3. Define templates
-  templates:
-    template.github-app-sync-failed: |
-      webhook:
-        github:
-          method: POST
-          url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
-          headers:
-            Authorization: Bearer $github_token
-            Accept: application/vnd.github+json
-          body: |
-            {
-              "event_type": "argocd-sync-failed",
-              "client_payload": {
-                "app": "{{.app.metadata.name}}",
-                "project": "{{.app.spec.project}}",
-                "revision": "{{.app.status.sync.revision}}",
-                "images": {{ toJson .app.status.images }}
-              }
-            }
-    template.github-app-sync-succeeded: |
-      webhook:
-        github:
-          method: POST
-          url: https://api.github.com/repos/labotomy-dot-dev/coffee-cup/dispatches
-          headers:
-            Authorization: Bearer $github_token
-            Accept: application/vnd.github+json
-          body: |
-            {
-              "event_type": "argocd-sync-succeeded",
-              "client_payload": {
-                "app": "{{.app.metadata.name}}",
-                "project": "{{.app.spec.project}}",
-                "revision": "{{.app.status.sync.revision}}",
-                "images": {{ toJson .app.status.summary.images }}
-              }
-            }
-  # 4. Define subscriptions
-  subscriptions:
-    - recipients:
-        - github
-      triggers:
-        - on-sync-succeeded
-        - on-sync-failed
-```
-
-#### Example GitHub Workflow Triggered
-
-When Argo CD sends a `repository_dispatch`:
-
-```yaml
-on:
-  repository_dispatch:
-    types: [argocd-sync-failed, argocd-sync-succeeded]
-
-jobs:
-  handle_event:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Rollback if sync failed
-        if: ${{ github.event.action == 'argocd-sync-failed' }}
-        run: |
-          echo "Rollback triggered for ${{ github.event.client_payload.app }}"
-          ./scripts/rollback_cli_.sh
 ```
 
 ### Troubleshooting notification controller
@@ -624,17 +489,17 @@ flowchart TD
 Use script to trigger promotion by acting to simulate ArgoCD behaviour:
 
 ```bash
-./.github/workflows/scripts/trigger-event.sh coffee-cup-prod dev argocd-sync-succeeded
+./.github/workflows/scripts/trigger-event.sh coffee-cup-prod dev argocd-on-dev-deployed
 ```
 
 ### Rollback excercise
 
 We do the rollback only for prod apps. In dev you want to troubleshoot & figure out what went wrong.
-To trigger workflow execute the script and provide arguments for the app name, project and `argocd-sync-failed`
+To trigger workflow execute the script and provide arguments for the app name, project and `argocd-on-prod-failed`
 event.
 
 ```bash
-./.github/workflows/scripts/trigger-event.sh coffee-cup-prod prod argocd-sync-failed
+./.github/workflows/scripts/trigger-event.sh coffee-cup-prod prod argocd-on-prod-failed
 ```
 
 ## Lab setup

@@ -4,8 +4,9 @@ set -euo pipefail
 # Usage:
 #   ./trigger-event.sh <app-name> [project-name] [event-type]
 # Examples:
-#   ./trigger-event.sh coffee-cup-dev dev argocd-sync-succeeded
-#   ./trigger-event.sh coffee-cup-prod prod argocd-sync-failed
+#   ./trigger-event.sh coffee-cup-dev dev argocd-on-dev-deployed
+#   ./trigger-event.sh coffee-cup-prod prod argocd-on-prod-deployed
+#   ./trigger-event.sh coffee-cup-prod prod argocd-on-prod-failed
 
 # --- Configuration ---
 GITHUB_OWNER="labotomy-dot-dev"
