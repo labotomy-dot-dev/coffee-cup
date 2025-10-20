@@ -173,7 +173,9 @@ notifications:
                 "app": "{{.app.metadata.name}}",
                 "project": "{{.app.spec.project}}",
                 "revision": "{{.app.status.sync.revision}}",
-                "images": {{ toJson .app.status.images }}
+                "images": {{ toJson .app.status.images }},
+                "trace_id": "{{.app.metadata.uid}}",
+                "app_revision": "{{.app.status.operationState.syncResult.revision}}"
               }
             }
     template.on-dev-deployed: |
@@ -191,7 +193,9 @@ notifications:
                 "app": "{{.app.metadata.name}}",
                 "project": "{{.app.spec.project}}",
                 "revision": "{{.app.status.sync.revision}}",
-                "images": {{ toJson .app.status.summary.images }}
+                "images": {{ toJson .app.status.summary.images }},
+                "trace_id": "{{.app.metadata.uid}}",
+                "app_revision": "{{.app.status.operationState.syncResult.revision}}"
               }
             }
     template.on-prod-deployed: |
@@ -209,7 +213,9 @@ notifications:
                 "app": "{{.app.metadata.name}}",
                 "project": "{{.app.spec.project}}",
                 "revision": "{{.app.status.sync.revision}}",
-                "images": {{ toJson .app.status.summary.images }}
+                "images": {{ toJson .app.status.summary.images }},
+                "trace_id": "{{.app.metadata.uid}}",
+                "app_revision": "{{.app.status.operationState.syncResult.revision}}"
               }
             }
   # 4. Define subscriptions
