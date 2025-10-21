@@ -419,6 +419,35 @@ kubectl -n argocd exec -it job/debug-notifications -- bash
 
 You may want to try using [gomplate](https://github.com/hairyhenderson/gomplate) as well.
 
+There are some other argocd commands you can use to troubleshoot. To list all template and triggers use:
+
+```bash
+argocd -n argocd admin notifications template get
+argocd -n argocd admin notifications trigger get
+```
+
+For example this one will tell you how the rendered notification would look like if ArgoCD would send it:
+
+```bash
+❯ argocd -n argocd admin notifications template notify on-dev-deployed coffee-cup-dev
+webhook:
+  github:
+    body: |
+      {
+        "event_type": "argocd-on-dev-deployed",
+        "client_payload": {
+          "app": "coffee-cup-dev",
+          "project": "dev",
+          "revision": "430c1f175bdecf33d328439836a4c6af2a6d87c3",
+          "images": ["ghcr.io/labotomy-dot-dev/coffee-cup-coffee-cup:dev-5"],
+          "trace_id": "11656229-706b-4c01-91d3-c377a4cabadc",
+          "app_revision": "ba5c98cc14b63a39daf863206ce78acc49bf8fbc"
+        }
+      }
+    method: POST
+    path: ""
+```
+
 ## coffee-cup app deploy/test/rollback scenarios
 
 More or less this is the target workflow:

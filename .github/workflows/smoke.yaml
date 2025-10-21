@@ -1,5 +1,11 @@
 name: Smoke test on production after ArgoCD sync
 
+# 👇 Dynamic workflow run name appears in the Actions UI
+run-name: |
+  [${{ github.event.client_payload.project || 'unknown' }}] \
+  ${{ github.event.client_payload.app || 'no-app' }} \
+  (rev: ${{ github.event.client_payload.app_revision || 'n/a' }}) \
+  -> ${{ github.event.action || github.event_name }}
 on:
   repository_dispatch:
     types: [argocd-on-prod-deployed]
