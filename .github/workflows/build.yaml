@@ -95,18 +95,6 @@ jobs:
 
           echo "Building $IMAGE..."
           docker buildx build "$SRC_PATH" --push --tag "$IMAGE"
-
-          echo "Updating manifest for $APP..."
-          yq -i ".spec.template.spec.containers[0].image = \"$IMAGE\"" \
-            "$DEV_MANIFEST_PATH/deploy.yaml"
-
-          git pull origin main
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add "$DEV_MANIFEST_PATH/deploy.yaml"
-          git commit -m "Update $APP dev image to $TAG [skip ci]" || echo "No changes to commit"
-          git push
-      # https://github.com/chrnorm/deployment-action
       - uses: chrnorm/deployment-action@v2
         name: Deploy ${{ matrix.app }} to dev environment
         id: deployment
@@ -114,3 +102,23 @@ jobs:
           token: ${{ github.token }}
           environment: dev
           environment-url: https://${{ matrix.app }}.labotomy.dev
+      - name: Update dev manifest for ${{ matrix.app }}
+        run: |
+          APP="${{ matrix.app }}"
+          DEV_MANIFEST_PATH="products/$APP/deploy/dev"
+          TAG="dev-${{ github.run_number }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-$APP:$TAG"
+
+          echo "Updating manifest for $APP..."
+          yq -i ".spec.template.spec.containers[0].image = \"$IMAGE\"" \
+            "$DEV_MANIFEST_PATH/deploy.yaml"
+
+          # https://github.com/chrnorm/deployment-action
+          yq eval '.metadata.annotations."github.com/deployment_id" = "${{ steps.deployment.outputs.deployment_id }}"' -i gitops/products/apps/dev/${{ matrix.app }}.yaml
+
+          git pull origin main
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add "$DEV_MANIFEST_PATH/deploy.yaml"
+          git commit -m "Update $APP dev image to $TAG [skip ci]" || echo "No changes to commit"
+          git push
