@@ -114,7 +114,14 @@ jobs:
             "$DEV_MANIFEST_PATH/deploy.yaml"
 
           # https://github.com/chrnorm/deployment-action
-          yq eval '.metadata.annotations."github.com/deployment_id" = "${{ steps.deployment.outputs.deployment_id }}"' -i gitops/products/apps/dev/${{ matrix.app }}.yaml
+          echo "Updating deployment ID=${{ steps.deployment.outputs.deployment_id }} annotation for $APP..."
+          yq eval '.metadata.annotations."github.com/deployment_id" = "${{ steps.deployment.outputs.deployment_id }}"' -i gitops/products/apps/dev/$APP.yaml
+
+          echo "Printing updated manifest for $APP:"
+          cat "$DEV_MANIFEST_PATH/deploy.yaml"
+          cat gitops/products/apps/dev/$APP.yaml
+
+          echo "Pushing updated manifest for $APP..."
 
           git pull origin main
           git config user.name "github-actions"
