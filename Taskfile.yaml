@@ -177,6 +177,7 @@ tasks:
       - task: cluster.up
       - task: ingress.up
       - task: argocd.up
+      - task: argocd.notification.secret
       - task: argocd.accounts.passwords
       - task: argocd.deploy.projects
       - task: argocd.deploy.apps
