@@ -96,7 +96,7 @@ jobs:
           echo "Building $IMAGE..."
           docker buildx build "$SRC_PATH" --push --tag "$IMAGE"
       - uses: chrnorm/deployment-action@v2
-        name: Deploy ${{ matrix.app }} to dev environment
+        name: Create Github deployment for ${{ matrix.app }}
         id: deployment
         with:
           token: ${{ github.token }}

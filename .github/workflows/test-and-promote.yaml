@@ -110,6 +110,7 @@ jobs:
           echo "Extracted images:"
           echo "DEV_IMAGE=$DEV_IMAGE" >> $GITHUB_ENV
           echo "PROD_IMAGE=$PROD_IMAGE" >> $GITHUB_ENV
+          echo "APP_BASE=$APP_BASE" >> $GITHUB_ENV"
 
       - name: Check if promotion is needed
         run: |
@@ -167,12 +168,12 @@ jobs:
           echo "PROD_IMAGE=$PROD_IMAGE" >> $GITHUB_ENV
           docker image ls
       - uses: chrnorm/deployment-action@v2
-        name: Deploy ${{ github.event.client_payload.app }} to prod environment
+        name: Create Github deployment for ${{ github.event.client_payload.app }}
         id: deployment
         with:
           token: ${{ github.token }}
           environment: prod
-          environment-url: https://${{ github.event.client_payload.app }}-prod.labotomy.dev
+          environment-url: https://${{ env.APP_BASE }}-prod.labotomy.dev
       - name: Update prod manifests
         run: |
           APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
