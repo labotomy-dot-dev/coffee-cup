@@ -101,7 +101,7 @@ jobs:
         with:
           token: ${{ github.token }}
           environment: dev
-          environment-url: https://${{ matrix.app }}.labotomy.dev
+          environment-url: https://${{ matrix.app }}-dev.labotomy.dev
       - name: Update dev manifest for ${{ matrix.app }}
         run: |
           APP="${{ matrix.app }}"

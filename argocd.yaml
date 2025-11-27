@@ -195,7 +195,8 @@ notifications:
                 "revision": "{{.app.status.sync.revision}}",
                 "images": {{ toJson .app.status.summary.images }},
                 "trace_id": "{{.app.metadata.uid}}",
-                "app_revision": "{{.app.status.operationState.syncResult.revision}}"
+                "app_revision": "{{.app.status.operationState.syncResult.revision}}",
+                "deployment_id": "{{index .app.metadata.annotations "github.com/deployment_id"}}"
               }
             }
     template.on-prod-deployed: |

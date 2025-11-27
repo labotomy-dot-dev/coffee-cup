@@ -41,7 +41,13 @@ jobs:
           echo "Revision: ${{ github.event.client_payload.revision }}"
           echo "Images: ${{ toJson(github.event.client_payload.images) }}"
           echo "✅ Argo CD finished syncing successfully!"
-
+      - name: Update deployment status
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: "${{ github.token }}"
+          environment-url: https://${{ github.event.client_payload.app }}.labotomy.dev
+          state: "success"
+          deployment-id: ${{ github.event.client_payload.deployment_id }}
       - name: Normalize app name
         id: normalize
         shell: bash
