@@ -6,6 +6,8 @@ metadata:
   labels:
     app.kubernetes.io/instance: coffee-cup-dev
     app.kubernetes.io/part-of: coffee-cup
+  annotations:
+    github.com/deployment_id: "3379012556"
 spec:
   project: dev
   source:
