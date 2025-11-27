@@ -588,3 +588,6 @@ Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
 - [ ] Add ingress definition for apps in products
 - [ ] Add dynamic names for workflows based on argocd payload
 - [ ] Update `trigger-event.sh` script to include additional fields sent from argocd notification
+- [ ] Add [badges](https://argo-cd.readthedocs.io/en/stable/user-guide/status-badge/)
+- [ ] Add ingress config for apps & dns entries
+- [ ] Add [external url](https://argo-cd.readthedocs.io/en/stable/user-guide/external-url/) for each app

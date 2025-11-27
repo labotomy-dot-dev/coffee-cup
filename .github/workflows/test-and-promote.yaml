@@ -173,19 +173,14 @@ jobs:
           environment-url: https://${{ github.event.client_payload.app }}-prod.labotomy.dev
       - name: Update prod manifest for ${{ github.event.client_payload.app }}
         run: |
-          APP="${{ github.event.client_payload.app }}"
-          # Update prod manifest
-          if [ ! -f "$PROD_MANIFEST" ]; then
-            echo "❌ Prod manifest not found at $PROD_MANIFEST"
-            exit 1
-          fi
-
+          APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
+          PROD_MANIFEST="products/$APP_BASE/deploy/prod/deploy.yaml"
           echo "Updating production manifest to use promoted image..."
           yq e -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST"
 
           # https://github.com/chrnorm/deployment-action
-          echo "Updating deployment ID=${{ steps.deployment.outputs.deployment_id }} annotation for $APP..."
-          yq eval '.metadata.annotations."github.com/deployment_id" = "${{ steps.deployment.outputs.deployment_id }}"' -i gitops/products/apps/prod/$APP.yaml
+          echo "Updating deployment ID=${{ steps.deployment.outputs.deployment_id }} annotation for $APP_BASE..."
+          yq eval '.metadata.annotations."github.com/deployment_id" = "${{ steps.deployment.outputs.deployment_id }}"' -i gitops/products/apps/prod/$APP_BASE.yaml
 
           # Commit and push changes
           git pull origin main
