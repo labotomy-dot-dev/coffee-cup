@@ -45,13 +45,6 @@ jobs:
           echo "Deployment ID: ${{ github.event.client_payload.deployment_id }}"
           echo "App: ${{ github.event.client_payload.app }}"
           cat products/apps/dev/${{ github.event.client_payload.app }}.yaml || echo "No app manifest found."
-      - name: Update deployment status
-        uses: chrnorm/deployment-status@v2
-        with:
-          token: "${{ github.token }}"
-          environment-url: https://${{ github.event.client_payload.app }}.labotomy.dev
-          state: "success"
-          deployment-id: ${{ github.event.client_payload.deployment_id }}
       - name: Normalize app name
         id: normalize
         shell: bash
@@ -60,6 +53,20 @@ jobs:
           APP_BASE=$(echo "$ARGO_APP" | sed -E 's/-[^-]+$//')
           echo "Normalized app name: $APP_BASE"
           echo "app_base=$APP_BASE" >> $GITHUB_OUTPUT
+      - name: Get deployment id from manifest
+        run: |
+          APP_BASE="${{ steps.normalize.outputs.app_base }}"
+          echo "Extracting Deployment ID from manifest."
+          DEPLOYMENT_ID=$(yq eval '.metadata.annotations."github.com/deployment_id"' gitops/products/apps/dev/$APP_BASE.yaml)
+          echo "Deployment ID from gitops manifest: $DEPLOYMENT_ID"
+          ecgi DEPLOYMENT_ID="$DEPLOYMENT_ID" >> $GITHUB_ENV
+      - name: Update deployment status
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: "${{ github.token }}"
+          environment-url: https://${{ github.event.client_payload.app }}.labotomy.dev
+          state: "success"
+          deployment-id: $DEPLOYMENT_ID
 
       - name: Run integration tests in cluster
         shell: bash
