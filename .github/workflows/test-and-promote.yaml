@@ -59,7 +59,7 @@ jobs:
           echo "Extracting Deployment ID from manifest."
           DEPLOYMENT_ID=$(yq eval '.metadata.annotations."github.com/deployment_id"' gitops/products/apps/dev/$APP_BASE.yaml)
           echo "Deployment ID from gitops manifest: $DEPLOYMENT_ID"
-          ecgi DEPLOYMENT_ID="$DEPLOYMENT_ID" >> $GITHUB_ENV
+          echo DEPLOYMENT_ID="$DEPLOYMENT_ID" >> $GITHUB_ENV
       - name: Update deployment status
         uses: chrnorm/deployment-status@v2
         with:
