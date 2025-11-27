@@ -43,6 +43,10 @@ jobs:
           echo "Revision: ${{ github.event.client_payload.revision }}"
           echo "Images: ${{ toJson(github.event.client_payload.images) }}"
           echo "✅ Argo CD finished syncing successfully!"
+      - name: Print deployment info for debugging
+        run: |
+          echo "Deployment ID: ${{ github.event.client_payload.deployment_id }}"
+          echo "App: ${{ github.event.client_payload.app }}"
       - name: Update deployment status
         uses: chrnorm/deployment-status@v2
         with:
@@ -174,6 +178,11 @@ jobs:
           token: ${{ github.token }}
           environment: prod
           environment-url: https://${{ env.APP_BASE }}-prod.labotomy.dev
+      - name: Print deployment info for debugging
+        run: |
+          echo "Deployment ID: ${{ steps.deployment.outputs.deployment_id }}"
+          echo "Deployment URL: ${{ steps.deployment.outputs.deployment_url }}"
+          echo "Environment URL: ${{ steps.deployment.outputs.environment_url }}"
       - name: Update prod manifests
         run: |
           APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"

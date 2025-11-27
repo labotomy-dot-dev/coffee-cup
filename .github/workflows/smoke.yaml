@@ -39,6 +39,10 @@ jobs:
         run: |
           echo "ArgoCD Payload: ${{ github.event.client_payload }}"
           echo "✅ ArgoCD sync succeeded for production!"
+      - name: Print deployment info for debugging
+        run: |
+          echo "Deployment ID: ${{ github.event.client_payload.deployment_id }}"
+          echo "App: ${{ github.event.client_payload.app }}"
       - name: Update deployment status
         uses: chrnorm/deployment-status@v2
         with:

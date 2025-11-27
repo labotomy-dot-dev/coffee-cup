@@ -102,6 +102,11 @@ jobs:
           token: ${{ github.token }}
           environment: dev
           environment-url: https://${{ matrix.app }}-dev.labotomy.dev
+      - name: Print deployment info for debugging
+        run: |
+          echo "Deployment ID: ${{ steps.deployment.outputs.deployment_id }}"
+          echo "Deployment URL: ${{ steps.deployment.outputs.deployment_url }}"
+          echo "Environment URL: ${{ steps.deployment.outputs.environment_url }}"
       - name: Update dev manifest for ${{ matrix.app }}
         run: |
           APP="${{ matrix.app }}"
