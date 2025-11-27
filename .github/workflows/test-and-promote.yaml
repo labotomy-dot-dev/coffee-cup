@@ -163,6 +163,8 @@ jobs:
           docker pull "$DEV_IMAGE"
           docker tag "$DEV_IMAGE" "$PROD_IMAGE"
           docker push "$PROD_IMAGE"
+          echo "Promotion completed."
+          echo "PROD_IMAGE=$PROD_IMAGE" >> $GITHUB_ENV
           docker image ls
       - uses: chrnorm/deployment-action@v2
         name: Deploy ${{ github.event.client_payload.app }} to prod environment
@@ -171,7 +173,7 @@ jobs:
           token: ${{ github.token }}
           environment: prod
           environment-url: https://${{ github.event.client_payload.app }}-prod.labotomy.dev
-      - name: Update prod manifest for ${{ github.event.client_payload.app }}
+      - name: Update prod manifests
         run: |
           APP_BASE="${{ needs.test-in-cluster.outputs.app_base }}"
           PROD_MANIFEST="products/$APP_BASE/deploy/prod/deploy.yaml"
