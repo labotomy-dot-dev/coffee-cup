@@ -29,6 +29,8 @@ jobs:
     # ✅ Only trigger for ArgoCD apps belonging to the prod project
     if: ${{ github.event.client_payload.project == 'prod' }}
     runs-on: ubuntu-latest
+    permissions:
+      deployments: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,7 +39,13 @@ jobs:
         run: |
           echo "ArgoCD Payload: ${{ github.event.client_payload }}"
           echo "✅ ArgoCD sync succeeded for production!"
-
+      - name: Update deployment status
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: "${{ github.token }}"
+          environment-url: https://${{ github.event.client_payload.app }}-prod.labotomy.dev
+          state: "success"
+          deployment-id: ${{ github.event.client_payload.deployment_id }}
       - name: Run production smoke test
         shell: bash
         run: |

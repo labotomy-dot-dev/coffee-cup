@@ -168,7 +168,16 @@ jobs:
           docker tag "$DEV_IMAGE" "$PROD_IMAGE"
           docker push "$PROD_IMAGE"
           docker image ls
-
+      - uses: chrnorm/deployment-action@v2
+        name: Deploy ${{ github.event.client_payload.app }} to prod environment
+        id: deployment
+        with:
+          token: ${{ github.token }}
+          environment: prod
+          environment-url: https://${{ github.event.client_payload.app }}-prod.labotomy.dev
+      - name: Update prod manifest for ${{ github.event.client_payload.app }}
+        run: |
+          APP="${{ github.event.client_payload.app }}"
           # Update prod manifest
           if [ ! -f "$PROD_MANIFEST" ]; then
             echo "❌ Prod manifest not found at $PROD_MANIFEST"
@@ -178,10 +187,15 @@ jobs:
           echo "Updating production manifest to use promoted image..."
           yq e -i ".spec.template.spec.containers[0].image = \"$PROD_IMAGE\"" "$PROD_MANIFEST"
 
+          # https://github.com/chrnorm/deployment-action
+          echo "Updating deployment ID=${{ steps.deployment.outputs.deployment_id }} annotation for $APP..."
+          yq eval '.metadata.annotations."github.com/deployment_id" = "${{ steps.deployment.outputs.deployment_id }}"' -i gitops/products/apps/prod/$APP.yaml
+
           # Commit and push changes
           git pull origin main
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add "$PROD_MANIFEST"
+          git add gitops/products/apps/prod/$APP.yaml
           git commit -m "Promote $APP_BASE to prod [skip ci]" || echo "No changes to commit"
           git push
