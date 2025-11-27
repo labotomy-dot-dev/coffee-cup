@@ -66,7 +66,7 @@ jobs:
           token: "${{ github.token }}"
           environment-url: https://${{ github.event.client_payload.app }}.labotomy.dev
           state: "success"
-          deployment-id: $DEPLOYMENT_ID
+          deployment-id: ${{ env.DEPLOYMENT_ID }}
 
       - name: Run integration tests in cluster
         shell: bash
