@@ -73,6 +73,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      deployments: write
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}
