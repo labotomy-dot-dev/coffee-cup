@@ -38,15 +38,13 @@ jobs:
 
       - name: Print ArgoCD webhook payload
         run: |
-          echo "App: ${{ github.event.client_payload.app }}"
-          echo "Project: ${{ github.event.client_payload.project }}"
-          echo "Revision: ${{ github.event.client_payload.revision }}"
-          echo "Images: ${{ toJson(github.event.client_payload.images) }}"
-          echo "✅ Argo CD finished syncing successfully!"
+          echo "Event type: ${{ github.event.action || github.event_name }}"
+          echo "Payload: ${{ toJson(github.event.client_payload) }}"
       - name: Print deployment info for debugging
         run: |
           echo "Deployment ID: ${{ github.event.client_payload.deployment_id }}"
           echo "App: ${{ github.event.client_payload.app }}"
+          cat products/apps/dev/${{ github.event.client_payload.app }}.yaml || echo "No app manifest found."
       - name: Update deployment status
         uses: chrnorm/deployment-status@v2
         with:

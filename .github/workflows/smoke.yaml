@@ -43,6 +43,7 @@ jobs:
         run: |
           echo "Deployment ID: ${{ github.event.client_payload.deployment_id }}"
           echo "App: ${{ github.event.client_payload.app }}"
+          cat products/apps/prod/${{ github.event.client_payload.app }}.yaml || echo "No app manifest found."
       - name: Update deployment status
         uses: chrnorm/deployment-status@v2
         with:
