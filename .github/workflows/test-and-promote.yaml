@@ -110,7 +110,7 @@ jobs:
           echo "Extracted images:"
           echo "DEV_IMAGE=$DEV_IMAGE" >> $GITHUB_ENV
           echo "PROD_IMAGE=$PROD_IMAGE" >> $GITHUB_ENV
-          echo "APP_BASE=$APP_BASE" >> $GITHUB_ENV"
+          echo "APP_BASE=$APP_BASE" >> $GITHUB_ENV
 
       - name: Check if promotion is needed
         run: |
