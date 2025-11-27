@@ -591,3 +591,4 @@ Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
 - [ ] Add [badges](https://argo-cd.readthedocs.io/en/stable/user-guide/status-badge/)
 - [ ] Add ingress config for apps & dns entries
 - [ ] Add [external url](https://argo-cd.readthedocs.io/en/stable/user-guide/external-url/) for each app
+- [ ] Add [external info](https://argo-cd.readthedocs.io/en/stable/user-guide/extra_info/)
