@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: coffee-cup-prod
   namespace: argocd
+  annotations:
+    github.com/deployment_id: "3379213056"
 spec:
   project: prod
   source:
