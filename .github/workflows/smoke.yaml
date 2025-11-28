@@ -44,21 +44,34 @@ jobs:
           echo "Deployment ID: ${{ github.event.client_payload.deployment_id }}"
           echo "App: ${{ github.event.client_payload.app }}"
           cat products/apps/prod/${{ github.event.client_payload.app }}.yaml || echo "No app manifest found."
-      - name: Update deployment status
-        uses: chrnorm/deployment-status@v2
-        with:
-          token: "${{ github.token }}"
-          environment-url: https://${{ github.event.client_payload.app }}-prod.labotomy.dev
-          state: "success"
-          deployment-id: ${{ github.event.client_payload.deployment_id }}
-      - name: Run production smoke test
+      - name: Normalize app name
+        id: normalize
         shell: bash
         run: |
           ARGO_APP="${{ github.event.client_payload.app }}"
           APP_BASE=$(echo "$ARGO_APP" | sed -E 's/-[^-]+$//')
-          echo "Running smoke test for $APP_BASE..."
+          echo "Normalized app name: $APP_BASE"
+          echo "app_base=$APP_BASE" >> $GITHUB_OUTPUT
+      - name: Get deployment id from manifest
+        run: |
+          APP_BASE="${{ steps.normalize.outputs.app_base }}"
+          echo "Extracting Deployment ID from manifest."
+          DEPLOYMENT_ID=$(yq eval '.metadata.annotations."github.com/deployment_id"' gitops/products/apps/prod/$APP_BASE.yaml)
+          echo "Deployment ID from gitops manifest: $DEPLOYMENT_ID"
+          echo DEPLOYMENT_ID="$DEPLOYMENT_ID" >> $GITHUB_ENV
+      - name: Update deployment status
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: "${{ github.token }}"
+          environment-url: https://${{ github.event.client_payload.app }}.labotomy.dev
+          state: "success"
+          deployment-id: ${{ env.DEPLOYMENT_ID }}
+      - name: Run production smoke test
+        shell: bash
+        run: |
+          echo "Running smoke test for ${{ env.APP_BASE }}..."
           # Example:
-          # curl -f "https://prod.example.com/$APP_BASE/health" || exit 1
+          # curl -f "https://prod.example.com/${{ env.APP_BASE }}/health" || exit 1
           echo "✅ Smoke test passed!"
   rollback-on-failure:
     name: Rollback on failure
