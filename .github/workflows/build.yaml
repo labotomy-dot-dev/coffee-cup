@@ -147,4 +147,4 @@ jobs:
               - type: "section"
                 text:
                   type: "mrkdwn"
-                  text: "*Build and Deployment Notification*\n*App:* ${{ matrix.app }}\n*Status:* ${{ job.status }}\n*Environment URL:* https://${{ matrix.app }}-dev.labotomy.dev"
+                  text: "*Build Notification*\n*App:* ${{ matrix.app }}\n*Status:* ${{ job.status }}."

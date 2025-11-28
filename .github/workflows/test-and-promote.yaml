@@ -67,6 +67,18 @@ jobs:
           environment-url: https://${{ github.event.client_payload.app }}.labotomy.dev
           state: "success"
           deployment-id: ${{ env.DEPLOYMENT_ID }}
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "Deployment for ${{ env.APP_BASE }} completed, testing in cluster..."
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*Deployment Notification*\n*App:* ${{ env.APP_BASE }}\n*Status:* Deployed to dev, starting tests."
 
       - name: Run integration tests in cluster
         shell: bash
@@ -97,7 +109,14 @@ jobs:
           sudo wget -qO /usr/local/bin/yq \
             https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
-
+      - name: Normalize app name
+        id: normalize
+        shell: bash
+        run: |
+          ARGO_APP="${{ github.event.client_payload.app }}"
+          APP_BASE=$(echo "$ARGO_APP" | sed -E 's/-[^-]+$//')
+          echo "Normalized app name: $APP_BASE"
+          echo "app_base=$APP_BASE" >> $GITHUB_OUTPUT
       - name: Extract dev and prod images from manifests
         id: extract-images
         run: |
@@ -207,3 +226,15 @@ jobs:
           git add gitops/products/apps/prod/$APP_BASE.yaml
           git commit -m "Promote $APP_BASE to prod [skip ci]" || echo "No changes to commit"
           git push
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "Promotion of ${{ env.APP_BASE }} to production completed."
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*Promotion Notification*\n*App:* ${{ env.APP_BASE }}\n*Status:* Promoted to production."

@@ -73,6 +73,18 @@ jobs:
           # Example:
           # curl -f "https://prod.example.com/${{ env.APP_BASE }}/health" || exit 1
           echo "✅ Smoke test passed!"
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "Production smoke test for ${{ env.APP_BASE }} completed with status: ${{ job.status }}"
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*Production Smoke Test Notification*\n*App:* ${{ env.APP_BASE }}\n*Status:* ${{ job.status }}."
   rollback-on-failure:
     name: Rollback on failure
     runs-on: ubuntu-latest
@@ -89,10 +101,15 @@ jobs:
         shell: bash
         run: ./github/workflows/scripts/rollback.sh
 
-      # - name: Notify failure in logs
-      #   run: |
-      #     echo "📣 Notify team: ArgoCD sync failed for app ${{ github.event.client_payload.app }}"
-      #     # Example integration:
-      #     # curl -X POST -H 'Content-type: application/json' \
-      #     #   --data '{"text":"ArgoCD sync failed for app ${{ github.event.client_payload.app }}. Rollback triggered."}' \
-      #     #   ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "Production smoke test for ${{ env.APP_BASE }} completed with status: ${{ job.status }}"
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*Production Rollback Notification*\n*App:* ${{ env.APP_BASE }}\n*Status:* Rolled back due to smoke test failure."
