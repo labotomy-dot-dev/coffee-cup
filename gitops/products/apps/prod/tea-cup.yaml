@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: tea-cup-prod
   namespace: argocd
+  annotations:
+    github.com/deployment_id: "3385116870"
 spec:
   project: prod
   source:
