@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: tea-cup-dev
     app.kubernetes.io/part-of: tea-cup
   annotations:
-    github.com/deployment_id: "3385233038"
+    github.com/deployment_id: "3385293222"
 spec:
   project: dev
   source:
