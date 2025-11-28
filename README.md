@@ -583,13 +583,13 @@ Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
 - [ ] Configure tracing for easier troubleshooting
 - [x] Use Github environments
 - [ ] Find a way if possible to test inside the cluster using a job instead of using Github workflow
-- [ ] Remove TLS for ingress on Argocd
 - [x] Add ingress definition for apps in products
 - [x] Add dynamic names for workflows based on argocd payload
 - [ ] Update `trigger-event.sh` script to include additional fields sent from argocd notification
-- [ ] Add [badges](https://argo-cd.readthedocs.io/en/stable/user-guide/status-badge/)
-- [ ] Add ingress config for apps & dns entries
+- [x] Add ingress config for apps & dns entries
 - [ ] Add [external url](https://argo-cd.readthedocs.io/en/stable/user-guide/external-url/) for each app
 - [x] Add [external info](https://argo-cd.readthedocs.io/en/stable/user-guide/extra_info/)
 - [x] Add slack notifications
 - [ ] Replace PAT with Github app for Argocd notifications
+- [ ] Fix deployments (each app has it's own environment)
+- [ ] Finalize rollback with environments

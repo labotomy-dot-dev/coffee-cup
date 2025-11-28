@@ -200,7 +200,7 @@ jobs:
         id: deployment
         with:
           token: ${{ github.token }}
-          environment: prod
+          environment: prod-${{ env.APP_BASE }}
           environment-url: https://${{ env.APP_BASE }}-prod.labotomy.dev
       - name: Print deployment info for debugging
         run: |

@@ -100,7 +100,7 @@ jobs:
         id: deployment
         with:
           token: ${{ github.token }}
-          environment: dev
+          environment: dev-${{ matrix.app }}
           environment-url: https://${{ matrix.app }}-dev.labotomy.dev
       - name: Print deployment info for debugging
         run: |
