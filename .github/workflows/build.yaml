@@ -135,3 +135,16 @@ jobs:
           git add gitops/products/apps/dev/$APP.yaml
           git commit -m "Update $APP dev image to $TAG [skip ci]" || echo "No changes to commit"
           git push
+      - name: Send Slack notification
+        if: always()
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "Build and deployment for ${{ matrix.app }} completed with status: ${{ job.status }}"
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*Build and Deployment Notification*\n*App:* ${{ matrix.app }}\n*Status:* ${{ job.status }}\n*Environment URL:* https://${{ matrix.app }}-dev.labotomy.dev"
