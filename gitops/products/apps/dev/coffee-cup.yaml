@@ -11,12 +11,16 @@ metadata:
 spec:
   project: dev
   source:
-    repoURL: 'https://github.com/labotomy-dot-dev/coffee-cup.git'
+    repoURL: "https://github.com/labotomy-dot-dev/coffee-cup.git"
     targetRevision: main
     path: products/coffee-cup/deploy/dev
   destination:
-    server: 'https://kubernetes.default.svc'
+    server: "https://kubernetes.default.svc"
     namespace: dev
+  info:
+    - name: URL
+      value: >-
+        https://coffee-cup-dev.labotomy.dev
   syncPolicy:
     automated:
       prune: true

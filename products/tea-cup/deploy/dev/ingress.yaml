@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tea-cup
+  namespace: dev
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: tea-cup-dev.labotomy.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tea-cup
+                port:
+                  number: 80

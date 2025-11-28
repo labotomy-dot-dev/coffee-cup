@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coffee-cup
+  namespace: prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: coffee-cup-prod.labotomy.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: coffee-cup
+                port:
+                  number: 80

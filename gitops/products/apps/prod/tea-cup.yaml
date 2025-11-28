@@ -8,12 +8,16 @@ metadata:
 spec:
   project: prod
   source:
-    repoURL: 'https://github.com/labotomy-dot-dev/coffee-cup.git'
+    repoURL: "https://github.com/labotomy-dot-dev/coffee-cup.git"
     targetRevision: main
     path: products/tea-cup/deploy/prod
   destination:
-    server: 'https://kubernetes.default.svc'
+    server: "https://kubernetes.default.svc"
     namespace: prod
+  info:
+    - name: URL
+      value: >-
+        https://tea-cup-prod.labotomy.dev
   syncPolicy:
     automated:
       prune: true

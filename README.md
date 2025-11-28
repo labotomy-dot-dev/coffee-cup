@@ -581,16 +581,15 @@ Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
 - [ ] Configure [Namespace based configuration for notifications](https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/#namespace-based-configuration)
   - [ ] Configure Github workflow to react on notifications per app
 - [ ] Configure tracing for easier troubleshooting
-- [ ] Add notifications to Slack channel(s)
-- [ ] Use Github environments
+- [x] Use Github environments
 - [ ] Find a way if possible to test inside the cluster using a job instead of using Github workflow
 - [ ] Remove TLS for ingress on Argocd
-- [ ] Add ingress definition for apps in products
-- [ ] Add dynamic names for workflows based on argocd payload
+- [x] Add ingress definition for apps in products
+- [x] Add dynamic names for workflows based on argocd payload
 - [ ] Update `trigger-event.sh` script to include additional fields sent from argocd notification
 - [ ] Add [badges](https://argo-cd.readthedocs.io/en/stable/user-guide/status-badge/)
 - [ ] Add ingress config for apps & dns entries
 - [ ] Add [external url](https://argo-cd.readthedocs.io/en/stable/user-guide/external-url/) for each app
-- [ ] Add [external info](https://argo-cd.readthedocs.io/en/stable/user-guide/extra_info/)
-- [ ] Add slack notifications
+- [x] Add [external info](https://argo-cd.readthedocs.io/en/stable/user-guide/extra_info/)
+- [x] Add slack notifications
 - [ ] Replace PAT with Github app for Argocd notifications
