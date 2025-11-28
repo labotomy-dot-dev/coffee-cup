@@ -176,7 +176,6 @@ notifications:
                 "images": {{ toJson .app.status.images }},
                 "trace_id": "{{.app.metadata.uid}}",
                 "app_revision": "{{.app.status.operationState.syncResult.revision}}"
-                "deployment_id": "{{index .app.metadata.annotations "github.com/deployment_id"}}"
               }
             }
     template.on-dev-deployed: |
@@ -196,8 +195,7 @@ notifications:
                 "revision": "{{.app.status.sync.revision}}",
                 "images": {{ toJson .app.status.summary.images }},
                 "trace_id": "{{.app.metadata.uid}}",
-                "app_revision": "{{.app.status.operationState.syncResult.revision}}",
-                "deployment_id": "{{index .app.metadata.annotations "github.com/deployment_id"}}"
+                "app_revision": "{{.app.status.operationState.syncResult.revision}}"
               }
             }
     template.on-prod-deployed: |
@@ -217,8 +215,7 @@ notifications:
                 "revision": "{{.app.status.sync.revision}}",
                 "images": {{ toJson .app.status.summary.images }},
                 "trace_id": "{{.app.metadata.uid}}",
-                "app_revision": "{{.app.status.operationState.syncResult.revision}}",
-                "deployment_id": "{{index .app.metadata.annotations "github.com/deployment_id"}}"
+                "app_revision": "{{.app.status.operationState.syncResult.revision}}"
               }
             }
   # 4. Define subscriptions

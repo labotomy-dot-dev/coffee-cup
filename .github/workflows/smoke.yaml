@@ -41,7 +41,6 @@ jobs:
           echo "✅ ArgoCD sync succeeded for production!"
       - name: Print deployment info for debugging
         run: |
-          echo "Deployment ID: ${{ github.event.client_payload.deployment_id }}"
           echo "App: ${{ github.event.client_payload.app }}"
           cat products/apps/prod/${{ github.event.client_payload.app }}.yaml || echo "No app manifest found."
       - name: Normalize app name
@@ -52,6 +51,7 @@ jobs:
           APP_BASE=$(echo "$ARGO_APP" | sed -E 's/-[^-]+$//')
           echo "Normalized app name: $APP_BASE"
           echo "app_base=$APP_BASE" >> $GITHUB_OUTPUT
+          echo "APP_BASE=$APP_BASE" >> $GITHUB_ENV
       - name: Get deployment id from manifest
         run: |
           APP_BASE="${{ steps.normalize.outputs.app_base }}"
