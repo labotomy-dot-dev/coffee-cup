@@ -591,5 +591,6 @@ Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
 - [x] Add [external info](https://argo-cd.readthedocs.io/en/stable/user-guide/extra_info/)
 - [x] Add slack notifications
 - [ ] Replace PAT with Github app for Argocd notifications
-- [ ] Fix deployments (each app has it's own environment)
+- [x] Fix deployments (each app has it's own environment)
 - [ ] Finalize rollback with environments
+- [ ] Add better commit messages (set constraints)
