@@ -594,3 +594,4 @@ Use Taskfile other commands to manage ArgoCD and other acpects of the lab.
 - [x] Fix deployments (each app has it's own environment)
 - [ ] Finalize rollback with environments
 - [ ] Add better commit messages (set constraints)
+- [ ] Generate certificate using certbot and allow use of custom domain name
